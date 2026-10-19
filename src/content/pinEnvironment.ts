@@ -6,19 +6,19 @@ import { captureElement } from './capture'
 import { compose, toPng } from './compose'
 import { caption } from './describe'
 import { footer, tidy } from './footer'
-import { LiveEdits } from './liveEdits'
+import { LivePreview } from './livePreview'
 import { classList, readValue } from './styles'
 import { readDesignSystem } from './tokens'
 
 export function pageEnvironment(): PinEnvironment {
-  const edits = new LiveEdits()
+  const livePreview = new LivePreview()
   return {
     capture: captureElement,
     designSystem: readDesignSystem,
     readValue,
     classes: classList,
     isValid: (prop, value) => CSS.supports(prop, value),
-    preview: (el, values) => edits.sync(el, values),
+    preview: (el, values) => livePreview.sync(el, values),
     render: async (h) =>
       toPng(
         compose({
