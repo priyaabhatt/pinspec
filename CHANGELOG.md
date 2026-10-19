@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The toolbar, card and property picker follow the system's dark mode (#6).
+
 ## 0.1.0 (unreleased)
 
 First version.
