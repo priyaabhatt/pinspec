@@ -18,7 +18,7 @@ import { useRect } from './useRect'
 type Mode = 'idle' | 'selecting' | 'capturing' | 'card'
 
 export function App({ onClose }: { onClose: () => void }) {
-  const [mode, setMode] = useState<Mode>('idle')
+  const [mode, setMode] = useState<Mode>('selecting')
   const [el, setEl] = useState<Element | null>(null)
   const [before, setBefore] = useState<HTMLCanvasElement | null>(null)
   const [comment, setComment] = useState('')
@@ -31,6 +31,7 @@ export function App({ onClose }: { onClose: () => void }) {
   const edits = useRef(new LiveEdits())
   const rect = useRect(mode === 'card' ? el : null)
   const ds = useMemo(() => readDesignSystem(), [el])
+  const beforeUrl = useMemo(() => before?.toDataURL('image/png') ?? '', [before])
 
   const flash = useCallback((text: string, tone: 'ok' | 'error' = 'ok') => {
     setToast({ text, tone })
@@ -196,6 +197,7 @@ export function App({ onClose }: { onClose: () => void }) {
           />
           <Card
             el={el}
+            beforeUrl={beforeUrl}
             rect={rect}
             ds={ds}
             comment={comment}
@@ -218,6 +220,7 @@ export function App({ onClose }: { onClose: () => void }) {
             onPickerOpen={setPickerOpen}
             busy={busy}
             onRemove={startSelecting}
+            onCancel={discard}
             onCopy={copy}
           />
         </>

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Crosshair, X } from 'lucide-react'
+import { MousePointer2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -52,7 +52,7 @@ export function Toolbar({ selecting, toast, onSelect, onClose }: Props) {
           onClick={onSelect}
           className={cn(selecting && 'bg-highlight text-white hover:bg-highlight hover:text-white')}
         >
-          <Crosshair />
+          <MousePointer2 />
         </Button>
       </Tooltip>
       <Tooltip label="Turn off pinspec">

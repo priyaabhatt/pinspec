@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { Copy, Delete, ImagePlus, X } from 'lucide-react'
+import { Copy, ImagePlus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
 import { snapValue, type DesignSystem } from '@/lib/snap'
@@ -11,6 +11,8 @@ import type { AfterImage, Row } from './types'
 
 interface Props {
   el: Element
+  /** Screenshot of the selected element, taken when it was picked. */
+  beforeUrl: string
   rect: DOMRect
   ds: DesignSystem
   comment: string
@@ -26,15 +28,18 @@ interface Props {
   onPickerOpen: (open: boolean) => void
   busy: boolean
   onRemove: () => void
+  onCancel: () => void
   onCopy: () => void
 }
 
 const CARD_W = 560
 const MARGIN = 10
+/** Room kept free at the bottom for the floating toolbar. */
+const TOOLBAR_ROOM = 72
 
 function place(rect: DOMRect, h: number) {
   const vw = window.innerWidth
-  const vh = window.innerHeight
+  const vh = window.innerHeight - TOOLBAR_ROOM
   const left = Math.min(Math.max(MARGIN, rect.left), vw - CARD_W - MARGIN)
   if (rect.bottom + MARGIN + h <= vh - MARGIN) return { left, top: rect.bottom + MARGIN }
   if (rect.top - MARGIN - h >= MARGIN) return { left, top: rect.top - MARGIN - h }
@@ -111,8 +116,12 @@ export function Card(p: Props) {
       className="pointer-events-auto fixed z-30 flex flex-col rounded-xl border bg-card text-card-foreground shadow-xl outline-none"
       style={{ left: pos.left, top: pos.top, width: CARD_W }}
     >
-      <div className="flex gap-3 p-3">
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
+      <div className="flex flex-col gap-2 p-3">
+        <div className="flex gap-3">
+          <BeforeSlot url={p.beforeUrl} />
+          <AfterSlot after={p.after} onClear={p.onClearAfter} />
+        </div>
+        <div className="flex min-w-0 flex-col gap-2">
           <textarea
             ref={commentRef}
             value={p.comment}
@@ -136,12 +145,11 @@ export function Card(p: Props) {
             </div>
           )}
         </div>
-        <AfterSlot after={p.after} onClear={p.onClearAfter} />
       </div>
       <div className="flex items-center gap-1 border-t px-2 py-1.5">
-        <Tooltip label="Remove element, keep the note" shortcut="⌫">
-          <Button variant="ghost" size="icon-sm" aria-label="Remove element" onClick={p.onRemove}>
-            <Delete />
+        <Tooltip label="Cancel" shortcut="Esc">
+          <Button variant="ghost" size="icon-sm" aria-label="Cancel" onClick={p.onCancel}>
+            <X />
           </Button>
         </Tooltip>
         <CssPicker
@@ -151,7 +159,6 @@ export function Card(p: Props) {
           taken={new Set(p.rows.map((r) => r.prop))}
           onAdd={(prop) => setFocusRow(p.onAddRow(prop))}
         />
-        <span className="ml-1 text-[11px] text-muted-foreground">Esc discards</span>
         <div className="ml-auto">
           <Tooltip label={canCopy ? 'Copy image and finish' : 'Write a comment first'} shortcut="⌘↵">
             <span tabIndex={canCopy ? undefined : 0}>
@@ -167,11 +174,31 @@ export function Card(p: Props) {
   )
 }
 
+const SLOT = 'relative flex h-[132px] min-w-0 flex-1 items-center justify-center overflow-hidden rounded-lg border'
+
+function SlotLabel({ children }: { children: string }) {
+  return (
+    <span className="absolute top-1.5 left-1.5 rounded bg-background/90 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase shadow-sm">
+      {children}
+    </span>
+  )
+}
+
+function BeforeSlot({ url }: { url: string }) {
+  return (
+    <div className={cn(SLOT, 'bg-muted p-2')}>
+      <img src={url} alt="Before" className="max-h-full max-w-full object-contain" />
+      <SlotLabel>Before</SlotLabel>
+    </div>
+  )
+}
+
 function AfterSlot({ after, onClear }: { after: AfterImage | null; onClear: () => void }) {
   if (after) {
     return (
-      <div className="group relative flex h-[132px] w-[168px] shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+      <div className={cn(SLOT, 'group bg-muted p-2')}>
         <img src={after.url} alt="After" className="max-h-full max-w-full object-contain" />
+        <SlotLabel>After</SlotLabel>
         <button
           type="button"
           aria-label="Remove after image"
@@ -184,7 +211,7 @@ function AfterSlot({ after, onClear }: { after: AfterImage | null; onClear: () =
     )
   }
   return (
-    <div className="flex h-[132px] w-[168px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed bg-muted/50 text-center text-muted-foreground">
+    <div className={cn(SLOT, 'flex-col gap-1.5 border-dashed bg-muted/50 text-center text-muted-foreground')}>
       <ImagePlus className="size-5" />
       <div className="text-xs font-medium">Paste after image</div>
       <kbd className="rounded border bg-background px-1.5 py-0.5 font-sans text-[11px]">⌘V</kbd>
