@@ -41,8 +41,12 @@ describe('a snapped row', () => {
     expect(r.hint).toEqual({ text: 'w-88 (352px)', struck: false })
   })
 
-  it('hands off the class with its value as a note', () => {
-    expect(r.handoff).toMatchObject({ prop: 'width', before: '232px', after: 'w-88', afterNote: '352px' })
+  it('hands off a sentence naming the class, its value and what was typed', () => {
+    expect(r.handoff).toBe('Change the width from 232px to w-88 (352px), the nearest step to 350px.')
+  })
+
+  it('names the before value by the element’s class, with the value alongside', () => {
+    expect(resolve({ after: '352px' }, ['w-58']).handoff).toBe('Change the width from w-58 (232px) to w-88 (352px).')
   })
 })
 
@@ -57,24 +61,29 @@ describe('an exact row', () => {
     expect(r.hint).toEqual({ text: 'w-88 (352px)', struck: true })
   })
 
-  it('hands off the typed value marked exact', () => {
-    expect(r.handoff).toMatchObject({ after: '350px', afterNote: 'exact' })
+  it('hands off the typed value, exactly', () => {
+    expect(r.handoff).toBe('Change the width from 232px to exactly 350px.')
   })
 })
 
 describe('a colour row', () => {
   const r = resolve({ prop: 'color', before: '#FFFFFF', after: '#6b7280' })
 
-  it('names both sides by token, with no hex note, and gives swatches', () => {
-    expect(r.handoff).toEqual({
-      prop: 'color',
-      before: 'text-background',
-      after: 'text-muted-foreground',
-      afterNote: undefined,
-      beforeSwatch: '#FFFFFF',
-      afterSwatch: '#6B7280',
-    })
+  it('names both sides by token, with their hex', () => {
+    expect(r.handoff).toBe('Change the text colour from text-background (#FFFFFF) to text-muted-foreground (#6B7280).')
     expect(r.hint).toEqual({ text: 'text-muted-foreground', struck: false })
+  })
+
+  it('writes an exact colour as hex, like every other colour', () => {
+    expect(resolve({ prop: 'color', before: '#123456', after: '#7a8494', exact: true }).handoff).toBe(
+      'Change the text colour from #123456 to exactly #7A8494.',
+    )
+  })
+
+  it('says which token is nearest when the typed colour isn’t one', () => {
+    expect(resolve({ prop: 'background-color', before: '#123456', after: '#7a8494' }).handoff).toBe(
+      'Change the background colour from #123456 to bg-muted-foreground (#6B7280), the nearest token to #7a8494.',
+    )
   })
 })
 
@@ -89,6 +98,13 @@ describe('a row with a typo', () => {
   })
 })
 
+describe('a keyword row', () => {
+  it('reads as plain words', () => {
+    const r = resolveRow(row({ prop: 'font-style', before: 'italic', after: 'normal' }), ds, [], () => true)
+    expect(r.handoff).toBe('Change the font style from italic to normal.')
+  })
+})
+
 describe('an empty row', () => {
   it('shows only its before value', () => {
     expect(resolve({}, ['w-58'])).toEqual({ before: 'w-58', hint: null, problem: null, preview: null, handoff: null })
@@ -100,6 +116,6 @@ describe('a row with no token to snap to', () => {
     const none = resolveRow(row({ after: '350px' }), createDesignSystem({ ...tokens, spacing: null }, { parseColor, remPx: 16 }), [], isValid)
     expect(none.preview).toBe('350px')
     expect(none.hint).toBeNull()
-    expect(none.handoff).toMatchObject({ after: '350px', afterNote: undefined })
+    expect(none.handoff).toBe('Change the width from 232px to 350px.')
   })
 })

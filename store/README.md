@@ -22,7 +22,7 @@ For the first upload, use `pinspec-<version>.zip` from the [GitHub release](http
 >
 > Click Copy and you get one PNG with:
 > • Before and After images of the element
-> • Before → after CSS rows with the matching tokens (w-88, rounded-lg, text-muted-foreground)
+> • Each CSS change as a plain instruction with the matching token, e.g. "Change the width from 232px to w-88 (352px)"
 > • Your comment
 > • Short instructions that keep the agent focused on that one element
 >

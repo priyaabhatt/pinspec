@@ -128,7 +128,7 @@ export function Card(p: Props) {
     >
       <div className="flex flex-col gap-2 p-3">
         <div className="flex gap-3">
-          <BeforeSlot url={p.beforeUrl} />
+          <BeforeSlot url={p.beforeUrl} tagged={!!p.after} />
           <AfterSlot after={p.after} onClear={p.onClearAfter} />
         </div>
         <div className="flex min-w-0 flex-col gap-2">
@@ -201,11 +201,12 @@ function SlotLabel({ children }: { children: string }) {
   )
 }
 
-function BeforeSlot({ url }: { url: string }) {
+/** Tagged "Before" only once there's an After to compare it with. */
+function BeforeSlot({ url, tagged }: { url: string; tagged: boolean }) {
   return (
     <div className={cn(SLOT, 'bg-muted p-2')}>
       <img src={url} alt="Before" className="max-h-full max-w-full object-contain" />
-      <SlotLabel>Before</SlotLabel>
+      {tagged && <SlotLabel>Before</SlotLabel>}
     </div>
   )
 }

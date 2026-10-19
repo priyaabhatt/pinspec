@@ -16,19 +16,6 @@ export interface CssRow {
   exact: boolean
 }
 
-/** One row of the handoff image's CSS section. */
-export interface HandoffRow {
-  prop: string
-  before: string
-  /** What to implement: a class or token when snapped, else the typed value. */
-  after: string
-  /** Secondary text: the resolved value, or "exact". */
-  afterNote?: string
-  /** Swatch colours for colour rows. */
-  beforeSwatch?: string
-  afterSwatch?: string
-}
-
 export interface ResolvedRow {
   /** The before value as the card, picker and image write it. */
   before: string
@@ -38,8 +25,12 @@ export interface ResolvedRow {
   problem: string | null
   /** The value applied to the page while typing, or null. */
   preview: string | null
-  /** The row in the handoff image, or null when there's nothing valid to hand off. */
-  handoff: HandoffRow | null
+  /**
+   * The row as a sentence for the handoff image ("Change the width from 232px
+   * to w-88 (352px), the nearest step to 350px."), or null when there's
+   * nothing valid to hand off.
+   */
+  handoff: string | null
 }
 
 /**
@@ -66,26 +57,27 @@ export function resolveRow(
   const preview = snap && !row.exact ? snap.value : typed
   const hint = snap ? { text: snap.exact ? snap.token : `${snap.token} (${snap.value})`, struck: row.exact } : null
 
-  let after = typed
-  let afterNote: string | undefined
-  if (row.exact) afterNote = 'exact'
+  // The page's value, named as the code most likely writes it, with the raw
+  // value alongside when the name hides it.
+  const raw = color ? ds.swatch(row.before) : row.before
+  const from = raw && raw !== before ? `${before} (${raw})` : before
+  let to = typed
+  if (row.exact) to = `exactly ${color ? (ds.swatch(typed) ?? typed) : typed}`
   else if (snap) {
-    after = snap.token
-    // Tokens over hex: colour tokens never carry their value.
-    if (!color) afterNote = snap.value
+    to = `${snap.token} (${snap.value})`
+    if (!snap.exact) to += `, the nearest ${color ? 'token' : 'step'} to ${typed}`
   }
   return {
     before,
     hint,
     problem: null,
     preview,
-    handoff: {
-      prop: row.prop,
-      before,
-      after,
-      afterNote,
-      beforeSwatch: color ? (ds.swatch(row.before) ?? undefined) : undefined,
-      afterSwatch: color ? (ds.swatch(preview) ?? undefined) : undefined,
-    },
+    handoff: `Change the ${propName(row.prop)} from ${from} to ${to}.`,
   }
+}
+
+/** A property as words: color → text colour, background-color → background colour, font-style → font style. */
+function propName(prop: string) {
+  if (prop === 'color') return 'text colour'
+  return prop.replace(/-color$/, ' colour').replace(/-/g, ' ')
 }

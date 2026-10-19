@@ -1,6 +1,6 @@
-// Draws the final handoff image: Before | After, CSS rows, comment, footer.
+// Draws the final handoff image: Before | After (or just the element when
+// there's no After), the changes as sentences, comment, footer.
 
-import type { HandoffRow } from '@/lib/cssRow'
 import type { Picture } from '@/lib/pin'
 
 export interface ComposeInput {
@@ -8,9 +8,10 @@ export interface ComposeInput {
   after: Picture | null
   /** Short identification of the element: tag, classes, text. */
   caption: string
-  /** Where the After came from, e.g. "Live preview of the CSS below". */
+  /** Where the After came from, e.g. "Live preview of the changes below". */
   afterCaption: string
-  rows: HandoffRow[]
+  /** Each CSS row as a sentence. */
+  changes: string[]
   comment: string
   footer: string[]
 }
@@ -23,6 +24,9 @@ const SCALE = 2
 // Tall enough that stitched captures of long elements stay readable.
 const MAX_PANEL_H = 1200
 const PANEL_PAD = 20
+const BULLET = 32
+const CHANGE_LINE = 32
+const CHANGE_GAP = 8
 
 const SANS = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace'
@@ -81,21 +85,25 @@ export function compose(input: ComposeInput): HTMLCanvasElement {
   const scratch = document.createElement('canvas').getContext('2d')!
   const innerW = COL - PANEL_PAD * 2
   const innerH = MAX_PANEL_H - PANEL_PAD * 2
-  const bFit = fit(input.before, innerW, innerH)
+  // With no After the element is the only picture: full width, untagged.
+  const single = !input.after
+  const panelW = single ? W - PAD * 2 : COL
+  const bFit = fit(input.before, panelW - PANEL_PAD * 2, innerH)
   const aFit = input.after ? fit(input.after, innerW, innerH) : null
   const panelH = Math.max(160, Math.max(bFit.h, aFit?.h ?? 0) + PANEL_PAD * 2)
 
   scratch.font = `400 26px ${SANS}`
   const commentLines = wrap(scratch, input.comment, W - PAD * 2)
+  scratch.font = `400 22px ${SANS}`
+  const changeLines = input.changes.map((c) => wrap(scratch, c, W - PAD * 2 - BULLET))
   scratch.font = `400 17px ${SANS}`
   const footerParas = input.footer.map((p) => wrap(scratch, p, W - PAD * 2))
   const FOOTER_PARA_GAP = 10
 
-  const ROW_H = 52
   let h = PAD
-  h += 22 + 26 + 12 // labels + caption
+  h += (single ? 0 : 22) + 26 + 12 // labels + caption
   h += panelH
-  if (input.rows.length) h += 44 + 22 + 14 + input.rows.length * ROW_H
+  if (changeLines.length) h += 44 + 22 + 14 + changeLines.flat().length * CHANGE_LINE + (changeLines.length - 1) * CHANGE_GAP
   h += 44 + 22 + 14 + commentLines.length * 36
   h += 36 + 1 + 24 + footerParas.flat().length * 26 + (footerParas.length - 1) * FOOTER_PARA_GAP
   h += PAD
@@ -121,66 +129,50 @@ export function compose(input: ComposeInput): HTMLCanvasElement {
   let y = PAD
   const xA = PAD + COL + GAP
 
-  // 1. Before | After
-  label('Before', PAD, y + 15)
-  label('After', xA, y + 15)
-  y += 22
+  // 1. Before | After, or just the element
+  if (!single) {
+    label('Before', PAD, y + 15)
+    label('After', xA, y + 15)
+    y += 22
+  }
   ctx.font = `400 15px ${MONO}`
   ctx.fillStyle = C.muted
-  ctx.fillText(ellipsize(ctx, input.caption, COL), PAD, y + 18)
-  ctx.fillText(ellipsize(ctx, input.afterCaption, COL), xA, y + 18)
+  ctx.fillText(ellipsize(ctx, input.caption, panelW), PAD, y + 18)
+  if (!single) ctx.fillText(ellipsize(ctx, input.afterCaption, COL), xA, y + 18)
   y += 26 + 12
 
-  const panel = (x: number, img: ComposeInput['before'] | null, f: { w: number; h: number } | null) => {
+  const panel = (x: number, img: Picture, f: { w: number; h: number }) => {
     ctx.fillStyle = C.panel
     ctx.beginPath()
-    ctx.roundRect(x, y, COL, panelH, 14)
+    ctx.roundRect(x, y, panelW, panelH, 14)
     ctx.fill()
-    if (img && f) {
-      const ix = x + (COL - f.w) / 2
-      const iy = y + (panelH - f.h) / 2
-      ctx.drawImage(img, ix, iy, f.w, f.h)
-      ctx.strokeStyle = C.line
-      ctx.lineWidth = 1
-      ctx.strokeRect(ix - 0.5, iy - 0.5, f.w + 1, f.h + 1)
-    } else {
-      ctx.font = `500 20px ${SANS}`
-      ctx.fillStyle = C.faint
-      ctx.textAlign = 'center'
-      ctx.fillText('No visual target. Follow the comment.', x + COL / 2, y + panelH / 2 + 7)
-      ctx.textAlign = 'left'
-    }
-  }
-  panel(PAD, input.before, bFit)
-  panel(xA, input.after, aFit)
-  y += panelH
-
-  // 2. CSS rows, level across both columns
-  if (input.rows.length) {
-    y += 44
-    label('CSS', PAD, y + 15)
-    y += 22 + 14
+    const ix = x + (panelW - f.w) / 2
+    const iy = y + (panelH - f.h) / 2
+    ctx.drawImage(img, ix, iy, f.w, f.h)
     ctx.strokeStyle = C.line
     ctx.lineWidth = 1
-    for (const r of input.rows) {
-      ctx.beginPath()
-      ctx.moveTo(PAD, y + 0.5)
-      ctx.lineTo(W - PAD, y + 0.5)
-      ctx.stroke()
-      cell(ctx, PAD, y, r.prop, r.before, undefined, r.beforeSwatch, false)
-      cell(ctx, xA, y, r.prop, r.after, r.afterNote, r.afterSwatch, true)
-      // Arrow in the gutter between columns.
-      ctx.font = `700 24px ${SANS}`
+    ctx.strokeRect(ix - 0.5, iy - 0.5, f.w + 1, f.h + 1)
+  }
+  panel(PAD, input.before, bFit)
+  if (input.after && aFit) panel(xA, input.after, aFit)
+  y += panelH
+
+  // 2. Changes, one sentence per CSS row
+  if (changeLines.length) {
+    y += 44
+    label('Changes', PAD, y + 15)
+    y += 22 + 14
+    ctx.font = `400 22px ${SANS}`
+    changeLines.forEach((lines, i) => {
+      if (i) y += CHANGE_GAP
       ctx.fillStyle = C.accent
-      ctx.textAlign = 'center'
-      ctx.fillText('→', PAD + COL + GAP / 2, y + 34)
-      ctx.textAlign = 'left'
-      y += ROW_H
-    }
-    ctx.beginPath()
-    ctx.moveTo(PAD, y + 0.5)
-    ctx.lineTo(W - PAD, y + 0.5)
-    ctx.stroke()
+      ctx.fillText('→', PAD, y + 24)
+      ctx.fillStyle = C.ink
+      for (const line of lines) {
+        ctx.fillText(line, PAD + BULLET, y + 24)
+        y += CHANGE_LINE
+      }
+    })
   }
 
   // 3. Comment
@@ -210,47 +202,6 @@ export function compose(input: ComposeInput): HTMLCanvasElement {
   })
 
   return canvas
-}
-
-function cell(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  prop: string,
-  value: string,
-  note: string | undefined,
-  swatch: string | undefined,
-  strong: boolean,
-) {
-  const base = y + 34
-  ctx.font = `500 22px ${MONO}`
-  ctx.fillStyle = C.muted
-  const propW = 230
-  ctx.fillText(ellipsize(ctx, prop, propW - 12), x, base)
-  let vx = x + propW
-  if (swatch) {
-    ctx.fillStyle = swatch
-    ctx.beginPath()
-    ctx.roundRect(vx, y + 15, 22, 22, 5)
-    ctx.fill()
-    ctx.strokeStyle = 'rgba(0,0,0,0.2)'
-    ctx.stroke()
-    ctx.strokeStyle = C.line
-    vx += 32
-  }
-  const room = COL - (vx - x)
-  ctx.font = `${strong ? 700 : 500} 22px ${MONO}`
-  ctx.fillStyle = C.ink
-  const v = ellipsize(ctx, value, room)
-  ctx.fillText(v, vx, base)
-  if (note) {
-    const used = ctx.measureText(v).width + 14
-    if (used < room - 40) {
-      ctx.font = `400 18px ${MONO}`
-      ctx.fillStyle = C.faint
-      ctx.fillText(ellipsize(ctx, note, room - used), vx + used, base)
-    }
-  }
 }
 
 export async function toPng(canvas: HTMLCanvasElement): Promise<Blob> {

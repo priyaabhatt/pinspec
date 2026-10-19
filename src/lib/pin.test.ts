@@ -141,7 +141,7 @@ describe('copy', () => {
     pin.updateRow(pin.addRow('width'), { after: '350px' })
     expect(await pin.copy()).toEqual({ ok: true })
     expect(log.rendered[0]).toMatchObject({ afterSource: 'live preview', comment: 'wider', hasSystem: true })
-    expect(log.rendered[0].rows).toEqual([expect.objectContaining({ prop: 'width', after: 'w-88' })])
+    expect(log.rendered[0].changes).toEqual(['Change the width from 232px to w-88 (352px), the nearest step to 350px.'])
     expect(pin.get()).toMatchObject({ stage: 'idle', element: null, comment: '', rows: [] })
     expect(log.previews.at(-1)).toEqual({ el: null, values: {} })
   })
