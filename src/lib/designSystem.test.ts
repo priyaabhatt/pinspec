@@ -115,7 +115,7 @@ describe('swatch and found', () => {
   })
 })
 
-describe('regressions from the code review of #24–#26', () => {
+describe('sites with Tailwind-style token names but no Tailwind, and arbitrary and dark: classes', () => {
   // A site with Tailwind-style token names but no Tailwind (no --spacing).
   const lookalike = createDesignSystem(
     {
@@ -142,6 +142,16 @@ describe('regressions from the code review of #24–#26', () => {
 
   it('shows an arbitrary colour as its value, not a token with the same hex', () => {
     expect(tw.nameBefore('color', '#6B7280', ['text-[#6b7280]'])).toBe('#6B7280')
+    expect(tw.nameBefore('border-top-color', '#6B7280', ['border-[#6b7280]'])).toBe('#6B7280')
+  })
+
+  it('ignores arbitrary classes that aren’t this colour', () => {
+    expect(tw.nameBefore('color', '#6B7280', ['text-[14px]', 'text-gray-500'])).toBe('text-gray-500')
+    expect(tw.nameBefore('color', '#6B7280', ['text-[#111111]'])).toBe('text-muted-foreground')
+  })
+
+  it('names a dark: colour class when it is the one in effect', () => {
+    expect(tw.nameBefore('background-color', '#6B7280', ['bg-background', 'dark:bg-gray-500'])).toBe('dark:bg-gray-500')
   })
 
   it('names a dark: class when it is the one in effect, preferring unprefixed classes', () => {

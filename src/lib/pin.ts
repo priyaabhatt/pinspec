@@ -61,7 +61,8 @@ export interface PinState {
   busy: boolean
 }
 
-export type Outcome = { ok: true } | { ok: false; error: string }
+/** `error` is null when the action was overtaken (Esc, Remove, Discard) and there's nothing to report. */
+export type Outcome = { ok: true } | { ok: false; error: string | null }
 
 const EMPTY: PinState = {
   stage: 'idle',
@@ -79,7 +80,10 @@ export class Pin {
   private state: PinState
   private listeners = new Set<() => void>()
   private nextId = 1
-  /** Bumped by every pick and discard, so a slow capture can tell it's stale. */
+  /**
+   * Bumped by every pick, Remove, cancel and Discard, so a slow capture or
+   * image load can tell it was overtaken.
+   */
   private generation = 0
 
   constructor(
@@ -109,11 +113,13 @@ export class Pin {
 
   /** Remove: let go of the element and go back to selecting. The draft is kept. */
   removeElement() {
+    this.generation++
     this.set({ stage: 'selecting', element: null, before: null })
   }
 
   /** Esc or the pointer button while selecting. The draft waits for the next pick. */
   cancelSelecting() {
+    this.generation++
     this.set({ stage: 'idle' })
   }
 
@@ -122,19 +128,40 @@ export class Pin {
     this.set({ stage: 'capturing' })
     try {
       const before = await this.env.capture(el)
-      // Discarded or re-picked while capturing: leave the pin as it is now.
-      if (generation !== this.generation || this.state.stage !== 'capturing') return { ok: true }
+      // Overtaken while capturing: leave the pin as it is now.
+      if (generation !== this.generation) return { ok: false, error: null }
       const rows = this.state.rows.map((r) => ({ ...r, before: this.env.readValue(el, r.prop) }))
       this.set({ stage: 'card', element: el, before, rows, designSystem: this.env.designSystem() })
       return { ok: true }
     } catch (err) {
-      if (generation === this.generation && this.state.stage === 'capturing') this.set({ stage: 'selecting' })
+      if (generation !== this.generation) return { ok: false, error: null }
+      this.set({ stage: 'selecting' })
       return { ok: false, error: `Couldn't capture: ${(err as Error).message}` }
     }
   }
 
   setComment(comment: string) {
     this.set({ comment })
+  }
+
+  /**
+   * Paste an After image that takes a moment to load. If the pin moves on
+   * meanwhile (Remove, Discard, a new pick), the image is freed, not attached.
+   */
+  async pasteAfter(load: () => Promise<AfterImage>): Promise<Outcome> {
+    const generation = this.generation
+    let after: AfterImage
+    try {
+      after = await load()
+    } catch {
+      return { ok: false, error: "That image couldn't be read" }
+    }
+    if (generation !== this.generation || this.state.stage !== 'card') {
+      this.env.release(after)
+      return { ok: false, error: null }
+    }
+    this.setAfter(after)
+    return { ok: true }
   }
 
   setAfter(after: AfterImage | null) {

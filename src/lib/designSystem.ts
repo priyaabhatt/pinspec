@@ -47,16 +47,32 @@ function nameColor(prop: string, value: string, classes: string[], tokens: Token
   const rgba = page.parseColor(value)
   if (!rgba) return value
   // The element's own colour class settles which of several equal tokens it
-  // uses; an arbitrary colour class (text-[#6b7280]) is a custom value.
-  const prefix = COLOR_PREFIX[prop]
+  // uses. An arbitrary colour class holding this colour (text-[#6b7280]) is a
+  // custom value; other arbitrary classes (text-[14px], border-[2px]) aren't
+  // colours and are skipped.
   for (const { cls, utility } of activeUtilities(classes)) {
-    if (!prefix || !utility.startsWith(prefix + '-')) continue
-    if (utility.startsWith(prefix + '-[')) return hex(rgba)
-    const token = tokens.colors.find((t) => t.name === `--color-${utility.slice(prefix.length + 1)}`)
+    const prefix = colorPrefixes(prop).find((p) => utility.startsWith(p + '-'))
+    if (!prefix) continue
+    const rest = utility.slice(prefix.length + 1)
+    if (rest.startsWith('[')) {
+      const custom = page.parseColor(rest.slice(1, -1).replace(/_/g, ' '))
+      if (custom && matchColor(rgba, [{ name: '', rgba: custom }])) return hex(rgba)
+      continue
+    }
+    const token = tokens.colors.find((t) => t.name === `--color-${rest}`)
     if (token && matchColor(rgba, [token])) return cls
   }
   const match = matchColor(rgba, tokens.colors)
   return match ? colorClass(prop, match.name, isTailwind(tokens)) : hex(rgba)
+}
+
+/** Utility prefixes that set a colour property: border-top-color can come from border-t-, border-y- or border-. */
+function colorPrefixes(prop: string): string[] {
+  const own = COLOR_PREFIX[prop]
+  if (!own) return []
+  const side = prop.match(/^border-(top|bottom|left|right)-color$/)?.[1]
+  if (!side) return [own]
+  return [own, side === 'top' || side === 'bottom' ? 'border-y' : 'border-x', 'border']
 }
 
 /** Utility prefixes that set each length property, most specific first. */

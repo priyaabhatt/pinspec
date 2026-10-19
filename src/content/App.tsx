@@ -43,7 +43,7 @@ export function App({ onClose }: { onClose: () => void }) {
 
   const pick = async (target: Element) => {
     const outcome = await pin.pick(target)
-    if (!outcome.ok) flash(outcome.error, 'error')
+    if (!outcome.ok && outcome.error) flash(outcome.error, 'error')
   }
 
   const toggleSelecting = () => {
@@ -52,16 +52,16 @@ export function App({ onClose }: { onClose: () => void }) {
   }
 
   const setAfterFile = async (file: File) => {
-    const url = URL.createObjectURL(file)
-    try {
-      const img = await loadImage(url)
-      // Discarded while the image loaded: there's no pin to attach it to.
-      if (pin.get().stage !== 'card') return URL.revokeObjectURL(url)
-      pin.setAfter({ url, img })
-    } catch {
-      URL.revokeObjectURL(url)
-      flash("That image couldn't be read", 'error')
-    }
+    const outcome = await pin.pasteAfter(async () => {
+      const url = URL.createObjectURL(file)
+      try {
+        return { url, img: await loadImage(url) }
+      } catch (err) {
+        URL.revokeObjectURL(url)
+        throw err
+      }
+    })
+    if (!outcome.ok && outcome.error) flash(outcome.error, 'error')
   }
 
   const copy = async () => {
@@ -69,7 +69,7 @@ export function App({ onClose }: { onClose: () => void }) {
     if (outcome.ok) {
       setPickerOpen(false)
       flash('Copied. Paste it into your agent')
-    } else flash(outcome.error, 'error')
+    } else if (outcome.error) flash(outcome.error, 'error')
   }
 
   return (
