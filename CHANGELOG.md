@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Before and After are cropped to exactly the selected element. They used to include 16px around it, which pulled in neighbouring content such as a sidebar's edge.
+- The copied image no longer ends with the agent footer; it's just the element, the changes and your comment.
 - CSS rows read as instructions in the copied image: "Change the width from 232px to w-88 (352px), the nearest step to 350px."
 - Pasting an After is optional in every sense: with no After and no CSS rows, the copied image shows just the element, untagged and full width, and the card drops its Before tag until you paste one.
 - The card and picker are always light, matching the copied image, instead of following the system's dark mode. The toolbar is dark, and both float on a stronger shadow so they stand out on white pages.
