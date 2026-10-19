@@ -24,7 +24,6 @@ For the first upload, use `pinspec-<version>.zip` from the [GitHub release](http
 > • Before and After images of the element
 > • Each CSS change as a plain instruction with the matching token, e.g. "Change the width from 232px to w-88 (352px)"
 > • Your comment
-> • Short instructions that keep the agent focused on that one element
 >
 > Paste it into Codex, Claude Code, Cursor or any agent that reads images.
 >

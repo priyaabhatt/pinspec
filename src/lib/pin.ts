@@ -26,8 +26,6 @@ export interface HandoffInput {
   /** Each CSS row as a sentence. */
   changes: string[]
   comment: string
-  hasSystem: boolean
-  hasExact: boolean
 }
 
 /** Everything the pin needs from the outside world. */
@@ -206,8 +204,6 @@ export class Pin {
         element: el,
         changes,
         comment: s.comment,
-        hasSystem: !!s.designSystem?.found,
-        hasExact: s.rows.some((r) => r.exact && s.resolved.get(r.id)?.handoff),
       })
     })()
     try {

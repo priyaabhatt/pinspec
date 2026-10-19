@@ -1,5 +1,5 @@
 // Draws the final handoff image: Before | After (or just the element when
-// there's no After), the changes as sentences, comment, footer.
+// there's no After), the changes as sentences and the comment.
 
 import type { Picture } from '@/lib/pin'
 
@@ -13,7 +13,6 @@ export interface ComposeInput {
   /** Each CSS row as a sentence. */
   changes: string[]
   comment: string
-  footer: string[]
 }
 
 const W = 1200
@@ -96,16 +95,12 @@ export function compose(input: ComposeInput): HTMLCanvasElement {
   const commentLines = wrap(scratch, input.comment, W - PAD * 2)
   scratch.font = `400 22px ${SANS}`
   const changeLines = input.changes.map((c) => wrap(scratch, c, W - PAD * 2 - BULLET))
-  scratch.font = `400 17px ${SANS}`
-  const footerParas = input.footer.map((p) => wrap(scratch, p, W - PAD * 2))
-  const FOOTER_PARA_GAP = 10
 
   let h = PAD
   h += (single ? 0 : 22) + 26 + 12 // labels + caption
   h += panelH
   if (changeLines.length) h += 44 + 22 + 14 + changeLines.flat().length * CHANGE_LINE + (changeLines.length - 1) * CHANGE_GAP
   h += 44 + 22 + 14 + commentLines.length * 36
-  h += 36 + 1 + 24 + footerParas.flat().length * 26 + (footerParas.length - 1) * FOOTER_PARA_GAP
   h += PAD
 
   const canvas = document.createElement('canvas')
@@ -185,21 +180,6 @@ export function compose(input: ComposeInput): HTMLCanvasElement {
     ctx.fillText(line, PAD, y + 27)
     y += 36
   }
-
-  // 4. Footer
-  y += 36
-  ctx.fillStyle = C.line
-  ctx.fillRect(PAD, y, W - PAD * 2, 1)
-  y += 1 + 24
-  ctx.font = `400 17px ${SANS}`
-  ctx.fillStyle = C.muted
-  footerParas.forEach((lines, i) => {
-    if (i) y += FOOTER_PARA_GAP
-    for (const line of lines) {
-      ctx.fillText(line, PAD, y + 4)
-      y += 26
-    }
-  })
 
   return canvas
 }
