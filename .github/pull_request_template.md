@@ -6,6 +6,7 @@
 
 - [ ] `npm run typecheck`
 - [ ] `npm test`
+- [ ] `npm run test:e2e`
 - [ ] `npm run build`
 - [ ] Loaded `dist/` in Chrome and tried the change on a real page
 

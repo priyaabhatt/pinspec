@@ -14,4 +14,4 @@
 
 ## Checks before pushing
 
-`npm run typecheck`, `npm test` and `npm run build` must all pass.
+`npm run typecheck`, `npm test`, `npm run test:e2e` and `npm run build` must all pass. For the e2e tests here, set `PINSPEC_CHROMIUM=/opt/pw-browsers/chromium` if Playwright's own Chromium isn't installed.

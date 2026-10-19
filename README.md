@@ -90,7 +90,8 @@ pinspec asks only for `activeTab` and `scripting`. It runs on a tab only after y
 ```sh
 npm run dev        # rebuild the content script on save
 npm run typecheck
-npm test           # snapping unit tests
+npm test           # unit tests
+npm run test:e2e   # builds, then drives the extension in Chromium on the dev pages
 npm run build
 ```
 
@@ -108,6 +109,7 @@ After a rebuild, click ↻ on pinspec's card in `chrome://extensions` and reload
 | `src/content/CssPicker.tsx` | Property picker with checkboxes and the class list |
 | `src/content/tokens.ts` | Reads design tokens from the page's CSS |
 | `src/lib/snap.ts` | Snapping logic (unit tested) |
+| `e2e/pinspec.test.mjs` | End-to-end tests: pin flow, picker, selection, tall capture, custom tokens |
 | `src/content/compose.ts` | Draws the final PNG |
 | `build/postcss-shadow-safe.js` | Makes Tailwind's output work inside a shadow root |
 
@@ -120,7 +122,7 @@ Built with React, Tailwind CSS v4, shadcn/ui and Vite.
 
 ## Contributing
 
-`main` only changes through pull requests. Branch from `main`, make sure `npm run typecheck`, `npm test` and `npm run build` pass, and open a PR using the template. Bug reports and ideas are welcome in [Issues](https://github.com/priyaabhatt/pinspec/issues).
+`main` only changes through pull requests. Branch from `main`, make sure `npm run typecheck`, `npm test`, `npm run test:e2e` and `npm run build` pass, and open a PR using the template. Bug reports and ideas are welcome in [Issues](https://github.com/priyaabhatt/pinspec/issues).
 
 ## License
 

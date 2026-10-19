@@ -29,7 +29,8 @@
     "build": "tsc --noEmit && vite build -c vite.content.config.ts && vite build -c vite.background.config.ts",
     "dev": "vite build -c vite.content.config.ts --watch",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "npm run build && node --test --test-concurrency=1 e2e/*.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-popover": "^1.3.1",
