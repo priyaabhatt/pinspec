@@ -30,7 +30,8 @@
     "dev": "vite build -c vite.content.config.ts --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "npm run build && node --test --test-concurrency=1 e2e/*.test.mjs"
+    "test:e2e": "npm run build && node --test --test-concurrency=1 e2e/*.test.mjs",
+    "zip": "npm run build && cd dist && zip -qr ../pinspec-$npm_package_version.zip . && echo pinspec-$npm_package_version.zip"
   },
   "dependencies": {
     "@radix-ui/react-popover": "^1.3.1",

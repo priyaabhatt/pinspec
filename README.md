@@ -81,9 +81,9 @@ Then load the `dist` folder as above.
 | Comment | Your comment, as typed or dictated |
 | Footer | Short instructions telling the agent to change only this element and use existing tokens |
 
-## Permissions
+## Permissions and privacy
 
-pinspec asks only for `activeTab` and `scripting`. It runs on a tab only after you click its icon, and it never sends data anywhere. Screenshots and the composed image stay in your browser until you paste them.
+pinspec asks only for `activeTab` and `scripting`. It runs on a tab only after you click its icon, and it never sends data anywhere. Screenshots and the composed image stay in your browser until you paste them. See the [privacy policy](PRIVACY.md).
 
 ## Development
 
@@ -119,6 +119,10 @@ Built with React, Tailwind CSS v4, shadcn/ui and Vite.
 
 - Tokens are read from same-origin stylesheets only; browsers block reading rules from other domains.
 - Chrome doesn't allow extensions on `chrome://` pages or the Chrome Web Store.
+
+## Releasing
+
+Bump the version in `package.json` and `public/manifest.json`, merge, and push a tag such as `v0.2.0`. The Release workflow attaches `pinspec-0.2.0.zip` to a GitHub release. The Chrome Web Store listing text, graphics and submission steps are in [`store/`](store/README.md).
 
 ## Contributing
 

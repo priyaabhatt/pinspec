@@ -1,0 +1,39 @@
+# Push a tag like v0.2.0 to build the extension and attach
+# pinspec-0.2.0.zip to a GitHub release, ready to upload to the
+# Chrome Web Store. See store/README.md.
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Check the tag matches package.json and manifest.json
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg=$(node -p "require('./package.json').version")
+          manifest=$(node -p "require('./public/manifest.json').version")
+          if [ "$tag" != "$pkg" ] || [ "$tag" != "$manifest" ]; then
+            echo "Tag $tag, package.json $pkg and manifest.json $manifest must match" >&2
+            exit 1
+          fi
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run zip
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: pinspec-*.zip
+          generate_release_notes: true
