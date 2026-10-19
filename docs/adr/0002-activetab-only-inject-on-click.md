@@ -1,0 +1,3 @@
+# Run only on click, with activeTab and no host permissions
+
+pinspec asks for `activeTab` and `scripting` only. Its content script is injected into the current tab when the icon or shortcut is used, rather than declared to run on every page. This keeps the install prompt free of "read and change all your data on all websites", keeps pinspec off every page you don't use it on, and still allows `captureVisibleTab` for screenshots. The cost: tests and other tooling can't inject without a click, so the e2e tests load a copy of the build with `<all_urls>` added, and Chrome can't keep pinspec running across a navigation.

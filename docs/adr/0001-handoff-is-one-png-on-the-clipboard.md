@@ -1,0 +1,3 @@
+# The handoff is one PNG on the clipboard
+
+The reader of a pin is a coding agent, not a person, and developers paste whatever they're given straight into their agent. So a copy produces a single image (Before, After, CSS rows, comment, footer) on the clipboard, which every image-capable agent accepts with one paste. We rejected text or Markdown handoffs, text and image together on one clipboard, a saved folder, Linear and MCP delivery: each either splits the handoff into parts an agent can pair up wrongly or needs setup on the developer's side. CSS rows are drawn level across the Before and After columns for the same reason.
