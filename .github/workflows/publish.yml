@@ -1,12 +1,15 @@
-# Push a tag like v0.2.0 to build the extension and attach
-# pinspec-0.2.0.zip to a GitHub release, ready to upload to the
-# Chrome Web Store. See store/README.md.
+# Creates a GitHub release with pinspec-<version>.zip attached, for the
+# version in package.json. Run it from the Actions tab (Release → Run
+# workflow), or push a tag like v0.2.0. The zip is what you upload to the
+# Chrome Web Store by hand for the very first version; after that the
+# Build extension workflow publishes automatically (store/AUTO-PUBLISH.md).
 
 name: Release
 
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -21,19 +24,26 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Check the tag matches package.json and manifest.json
+      - name: Check package.json and manifest.json agree (and match the tag)
         run: |
-          tag="${GITHUB_REF_NAME#v}"
           pkg=$(node -p "require('./package.json').version")
           manifest=$(node -p "require('./public/manifest.json').version")
-          if [ "$tag" != "$pkg" ] || [ "$tag" != "$manifest" ]; then
-            echo "Tag $tag, package.json $pkg and manifest.json $manifest must match" >&2
+          if [ "$pkg" != "$manifest" ]; then
+            echo "package.json $pkg and manifest.json $manifest must match" >&2
             exit 1
           fi
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "${GITHUB_REF_NAME#v}" != "$pkg" ]; then
+            echo "Tag $GITHUB_REF_NAME doesn't match version $pkg" >&2
+            exit 1
+          fi
+          echo "VERSION=$pkg" >> "$GITHUB_ENV"
       - run: npm run typecheck
       - run: npm test
       - run: npm run zip
       - uses: softprops/action-gh-release@v2
         with:
-          files: pinspec-*.zip
+          tag_name: v${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          name: pinspec ${{ env.VERSION }}
+          files: pinspec-${{ env.VERSION }}.zip
           generate_release_notes: true

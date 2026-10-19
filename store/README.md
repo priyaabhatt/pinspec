@@ -4,7 +4,7 @@ Everything needed to publish pinspec on the Chrome Web Store. Copy the text belo
 
 ## Package
 
-Each GitHub release has `pinspec-<version>.zip` attached; upload that. To build it locally, run `npm run zip`.
+For the first upload, use `pinspec-<version>.zip` from the [GitHub release](https://github.com/priyaabhatt/pinspec/releases). To build it locally, run `npm run zip`.
 
 ## Store listing
 
@@ -62,9 +62,6 @@ Each GitHub release has `pinspec-<version>.zip` attached; upload that. To build 
 
 **Privacy policy URL:** https://github.com/priyaabhatt/pinspec/blob/main/PRIVACY.md
 
-## Publishing a new version
+## Publishing updates
 
-1. Bump `version` in both `package.json` and `public/manifest.json`, and add a section to `CHANGELOG.md`.
-2. Merge to `main`, then tag the merge commit: `git tag v0.2.0 && git push origin v0.2.0`.
-3. The Release workflow builds, checks the versions match, and publishes a GitHub release with the zip.
-4. Upload the zip in the developer dashboard and submit for review.
+After the first version, updates publish automatically on every merge to `main`. Set that up once with [`AUTO-PUBLISH.md`](AUTO-PUBLISH.md).
