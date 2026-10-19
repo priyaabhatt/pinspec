@@ -18,7 +18,29 @@
 
 ## Skills
 
-The skills in `.claude/skills/` (see its README) apply here as follows:
+Use each skill in `.claude/skills/` (see its README) whenever its trigger comes up, without being asked:
+
+| Trigger | Skill |
+| --- | --- |
+| Writing or changing a module, an interface or where logic lives | `codebase-design` (modules below) |
+| A bug report, a failing test, "it doesn't work" | `diagnosing-bugs`: build a loop that goes red before reading code for a cause |
+| A new term, a renamed concept, or a decision that is hard to reverse and surprising | `domain-modeling`: update `GLOSSARY.md`, offer an ADR |
+| A plan or refactor to agree before building | `grilling`, one round of questions at a time |
+| Before opening a PR that changes code | `code-review` against `origin/main`; fix hard violations, list judgement calls under Evidence |
+| Writing any PR body | `pr` |
+| Editing this file or a skill | `writing-for-agents` |
+| A batch of features has landed | suggest `/improve-codebase-architecture` (user-invoked) |
+| A long session is ending | suggest `/retro` (user-invoked) |
+
+How they map onto this repo:
+
+- **Deep modules:** pure logic lives in `src/lib/` behind a small interface; browser code in `src/content/` is the adapter.
+  - Design system (`designSystem.ts`): snap and name values. Seam: `PageReader`.
+  - CSS row (`cssRow.ts`): one row resolved for the live preview, the card and the handoff image.
+  - Pin (`pin.ts`): a pin's lifecycle. Seam: `PinEnvironment`, real in `src/content/pinEnvironment.ts`.
+  - Capture (`src/content/capture.ts`): screenshots and stitching, behind `captureElement(el)`.
+
+  Put new behaviour inside one of these interfaces before adding a module, and test it there.
 
 - **Issue tracker:** GitHub Issues on `priyaabhatt/pinspec`. A PR's spec is the issue it closes ("Closes #N" / "Part of #N"); read it with the GitHub tools.
 - **Standards sources for `code-review`:** this file, the "Contributing" section of `README.md`, `.github/pull_request_template.md`, and `tsconfig.json` (strict TypeScript). Typecheck, tests and the build are enforced by CI, so don't report what they already catch.

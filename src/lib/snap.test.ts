@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { snapValue, tokenKind, type Tokens, type Rgba } from './snap'
+import { createDesignSystem } from './designSystem'
+import { tokenKind, type Tokens, type Rgba } from './snap'
 
 const ds: Tokens = {
   spacing: 4,
@@ -26,32 +27,35 @@ const hexColor = (v: string): Rgba | null => {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255, 1]
 }
 
-describe('snapValue', () => {
+/** Snapping is tested through the design system's interface, the way callers use it. */
+const snap = (tokens: Tokens) => createDesignSystem(tokens, { parseColor: hexColor, remPx: 16 })
+
+describe('snap', () => {
   it('snaps widths to the spacing scale', () => {
-    expect(snapValue('width', '350px', ds, hexColor)).toEqual({ token: 'w-88', value: '352px', exact: false })
-    expect(snapValue('padding-left', '1rem', ds, hexColor)).toEqual({ token: 'pl-4', value: '16px', exact: true })
-    expect(snapValue('margin-top', '-8px', ds, hexColor)?.token).toBe('-mt-2')
+    expect(snap(ds).snap('width', '350px')).toEqual({ token: 'w-88', value: '352px', exact: false })
+    expect(snap(ds).snap('padding-left', '1rem')).toEqual({ token: 'pl-4', value: '16px', exact: true })
+    expect(snap(ds).snap('margin-top', '-8px')?.token).toBe('-mt-2')
   })
 
   it('snaps radius to the nearest token', () => {
-    expect(snapValue('border-radius', '8px', ds, hexColor)).toEqual({ token: 'rounded-lg', value: '8px', exact: true })
-    expect(snapValue('border-radius', '7.5px', ds, hexColor)?.token).toBe('rounded-lg')
+    expect(snap(ds).snap('border-radius', '8px')).toEqual({ token: 'rounded-lg', value: '8px', exact: true })
+    expect(snap(ds).snap('border-radius', '7.5px')?.token).toBe('rounded-lg')
   })
 
   it('prefers semantic colour tokens over palette steps', () => {
-    expect(snapValue('color', '#6B7280', ds, hexColor)?.token).toBe('text-muted-foreground')
-    expect(snapValue('background-color', '#0B0B0B', ds, hexColor)).toMatchObject({ token: 'bg-foreground', exact: false })
+    expect(snap(ds).snap('color', '#6B7280')?.token).toBe('text-muted-foreground')
+    expect(snap(ds).snap('background-color', '#0B0B0B')).toMatchObject({ token: 'bg-foreground', exact: false })
   })
 
   it('handles type tokens', () => {
-    expect(snapValue('font-size', '15px', ds, hexColor)?.token).toMatch(/text-(sm|base)/)
-    expect(snapValue('font-weight', '650', ds, hexColor)?.token).toBe('font-bold')
+    expect(snap(ds).snap('font-size', '15px')?.token).toMatch(/text-(sm|base)/)
+    expect(snap(ds).snap('font-weight', '650')?.token).toBe('font-bold')
   })
 
   it('returns null with no system', () => {
     const none: Tokens = { spacing: null, spaces: [], colors: [], radii: [], fontSizes: [], fontWeights: [] }
-    expect(snapValue('width', '350px', none, hexColor)).toBeNull()
-    expect(snapValue('color', '#fff000', none, hexColor)).toBeNull()
+    expect(snap(none).snap('width', '350px')).toBeNull()
+    expect(snap(none).snap('color', '#fff000')).toBeNull()
   })
 })
 
@@ -77,7 +81,7 @@ describe('tokenKind', () => {
   })
 })
 
-describe('snapValue on a non-Tailwind site', () => {
+describe('snap on a non-Tailwind site', () => {
   const custom: Tokens = {
     spacing: null,
     spaces: [
@@ -95,16 +99,16 @@ describe('snapValue on a non-Tailwind site', () => {
   }
 
   it('snaps to the custom scale and uses var()', () => {
-    expect(snapValue('padding-left', '18px', custom, hexColor)).toEqual({ token: 'var(--space-4)', value: '16px', exact: false })
-    expect(snapValue('gap', '24px', custom, hexColor)).toEqual({ token: 'var(--space-6)', value: '24px', exact: true })
-    expect(snapValue('border-radius', '7px', custom, hexColor)?.token).toBe('var(--rounded-md)')
-    expect(snapValue('font-size', '15px', custom, hexColor)?.token).toBe('var(--font-size-body)')
-    expect(snapValue('font-weight', '700', custom, hexColor)?.token).toBe('var(--fw-bold)')
-    expect(snapValue('color', '#2563EB', custom, hexColor)).toMatchObject({ token: 'var(--brand-primary)', exact: true })
+    expect(snap(custom).snap('padding-left', '18px')).toEqual({ token: 'var(--space-4)', value: '16px', exact: false })
+    expect(snap(custom).snap('gap', '24px')).toEqual({ token: 'var(--space-6)', value: '24px', exact: true })
+    expect(snap(custom).snap('border-radius', '7px')?.token).toBe('var(--rounded-md)')
+    expect(snap(custom).snap('font-size', '15px')?.token).toBe('var(--font-size-body)')
+    expect(snap(custom).snap('font-weight', '700')?.token).toBe('var(--fw-bold)')
+    expect(snap(custom).snap('color', '#2563EB')).toMatchObject({ token: 'var(--brand-primary)', exact: true })
   })
 
   it('prefers the Tailwind name when an alias has the same value', () => {
     const tw: Tokens = { ...ds, radii: [{ name: '--radius', px: 8 }, { name: '--radius-lg', px: 8 }] }
-    expect(snapValue('border-radius', '8px', tw, hexColor)?.token).toBe('rounded-lg')
+    expect(snap(tw).snap('border-radius', '8px')?.token).toBe('rounded-lg')
   })
 })
