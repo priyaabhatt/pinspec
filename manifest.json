@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "pinspec",
-  "version": "0.1.21",
+  "version": "0.1.22",
   "description": "Pin a UI change on any page and copy it as one image a coding agent can act on.",
   "action": {
     "default_title": "pinspec",
