@@ -88,12 +88,12 @@ export function isColorProp(prop: string) {
 }
 
 /** Tailwind v4 always defines --spacing; a page without it isn't using Tailwind. */
-export function isTailwind(ds: Tokens) {
-  return ds.spacing !== null
+export function isTailwind(tokens: Tokens) {
+  return tokens.spacing !== null
 }
 
-export function hasSystem(ds: Tokens) {
-  return ds.spacing !== null || [ds.spaces, ds.colors, ds.radii, ds.fontSizes, ds.fontWeights].some((t) => t.length > 0)
+export function hasSystem(tokens: Tokens) {
+  return tokens.spacing !== null || [tokens.spaces, tokens.colors, tokens.radii, tokens.fontSizes, tokens.fontWeights].some((t) => t.length > 0)
 }
 
 export type TokenKind = 'spacing-base' | 'space' | 'radius' | 'font-size' | 'font-weight' | 'color'
@@ -250,25 +250,26 @@ export function snapColor(prop: string, rgba: Rgba, tokens: ColorToken[], tailwi
 export function snapValue(
   prop: string,
   value: string,
-  ds: Tokens,
+  tokens: Tokens,
   parseColor: (v: string) => Rgba | null,
   remPx = 16,
 ): Snap | null {
   const v = value.trim()
+  const tailwind = isTailwind(tokens)
   if (!v) return null
   if (isColorProp(prop)) {
     const rgba = parseColor(v)
-    return rgba ? snapColor(prop, rgba, ds.colors, isTailwind(ds)) : null
+    return rgba ? snapColor(prop, rgba, tokens.colors, tailwind) : null
   }
   if (prop === 'font-weight') {
     const n = Number(v)
-    return Number.isFinite(n) ? snapLength(prop, n, ds.fontWeights, isTailwind(ds), '') : null
+    return Number.isFinite(n) ? snapLength(prop, n, tokens.fontWeights, tailwind, '') : null
   }
   const px = parsePx(v, remPx)
   if (px === null) return null
-  if (prop in SPACING_PREFIX && ds.spacing) return snapSpacing(prop, px, ds.spacing)
-  if (prop in SPACING_PREFIX && ds.spaces.length) return snapLength(prop, px, ds.spaces, isTailwind(ds))
-  if (RADIUS_PROPS.has(prop)) return snapLength(prop, px, ds.radii, isTailwind(ds))
-  if (prop === 'font-size') return snapLength(prop, px, ds.fontSizes, isTailwind(ds))
+  if (prop in SPACING_PREFIX && tokens.spacing) return snapSpacing(prop, px, tokens.spacing)
+  if (prop in SPACING_PREFIX && tokens.spaces.length) return snapLength(prop, px, tokens.spaces, tailwind)
+  if (RADIUS_PROPS.has(prop)) return snapLength(prop, px, tokens.radii, tailwind)
+  if (prop === 'font-size') return snapLength(prop, px, tokens.fontSizes, tailwind)
   return null
 }

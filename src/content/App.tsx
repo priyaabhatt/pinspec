@@ -12,11 +12,11 @@ export function App({ onClose }: { onClose: () => void }) {
   // The pin owns its contents and lifecycle; App renders it and holds UI-only
   // state (the picker, the toast). Activating pinspec starts selecting.
   const [pin] = useState(() => new Pin(pageEnvironment(), 'selecting'))
-  const { stage, element: el, before, comment, after, rows, resolved, designSystem, busy } = useSyncExternalStore(pin.subscribe, pin.get)
+  const { stage, element: el, before, comment, after, rows, resolved, designSystem, busy, canCopy } = useSyncExternalStore(pin.subscribe, pin.get)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [toast, setToast] = useState<{ text: string; tone: 'ok' | 'error' } | null>(null)
   const rect = useRect(stage === 'card' ? el : null)
-  const beforeUrl = useMemo(() => (before instanceof HTMLCanvasElement ? before.toDataURL('image/png') : ''), [before])
+  const beforeUrl = useMemo(() => before?.toDataURL('image/png') ?? '', [before])
 
   const flash = useCallback((text: string, tone: 'ok' | 'error' = 'ok') => {
     setToast({ text, tone })
@@ -99,6 +99,7 @@ export function App({ onClose }: { onClose: () => void }) {
             pickerOpen={pickerOpen}
             onPickerOpen={setPickerOpen}
             busy={busy}
+            canCopy={canCopy}
             onRemove={toggleSelecting}
             onCopy={copy}
           />
