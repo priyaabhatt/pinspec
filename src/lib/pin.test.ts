@@ -103,6 +103,16 @@ describe('the draft', () => {
 })
 
 describe('live preview', () => {
+  it('is left alone while typing the comment', async () => {
+    const { pin, log } = await pinWithElement()
+    pin.updateRow(pin.addRow('width'), { after: '350px' })
+    const applied = log.previews.length
+    pin.setComment('w')
+    pin.setComment('wi')
+    expect(log.previews.length).toBe(applied)
+    expect(pin.get().canCopy).toBe(true)
+  })
+
   it('applies valid after values to the element and restores the page on discard', async () => {
     const { pin, log } = await pinWithElement()
     const id = pin.addRow('width')
@@ -118,11 +128,11 @@ describe('live preview', () => {
 describe('copy', () => {
   it('needs an element and a comment', async () => {
     const { pin } = await pinWithElement()
-    expect(pin.canCopy).toBe(false)
+    expect(pin.get().canCopy).toBe(false)
     pin.setComment('wider')
-    expect(pin.canCopy).toBe(true)
+    expect(pin.get().canCopy).toBe(true)
     pin.removeElement()
-    expect(pin.canCopy).toBe(false)
+    expect(pin.get().canCopy).toBe(false)
   })
 
   it('renders the handoff, ends the pin and restores the page on success', async () => {
