@@ -2,8 +2,6 @@
 
 import { getHost } from './env'
 
-const CONTEXT = 16
-
 function nextFrame() {
   return new Promise<void>((r) => requestAnimationFrame(() => r()))
 }
@@ -40,15 +38,15 @@ export async function captureVisible(): Promise<HTMLImageElement> {
 }
 
 /**
- * Crop to the element plus ~16px of context, clamped to the viewport.
- * Used when the element fits on screen.
+ * Crop to exactly the element's box, clamped to the viewport; neighbouring
+ * content would read as part of the element. Used when it fits on screen.
  */
 export function cropToElement(shot: HTMLImageElement, rect: DOMRect): HTMLCanvasElement {
   const scale = shot.naturalWidth / window.innerWidth
-  const x0 = Math.max(0, rect.left - CONTEXT)
-  const y0 = Math.max(0, rect.top - CONTEXT)
-  const x1 = Math.min(window.innerWidth, rect.right + CONTEXT)
-  const y1 = Math.min(window.innerHeight, rect.bottom + CONTEXT)
+  const x0 = Math.max(0, rect.left)
+  const y0 = Math.max(0, rect.top)
+  const x1 = Math.min(window.innerWidth, rect.right)
+  const y1 = Math.min(window.innerHeight, rect.bottom)
   const w = Math.max(1, Math.round((x1 - x0) * scale))
   const h = Math.max(1, Math.round((y1 - y0) * scale))
   const canvas = document.createElement('canvas')
@@ -127,16 +125,13 @@ async function captureTall(el: Element): Promise<HTMLCanvasElement> {
   const scrollBy = (dy: number) => scroller.scrollTo({ top: scroller.scrollTop + dy, behavior: 'instant' })
   const atEnd = () => scroller.scrollTop >= scroller.scrollHeight - scroller.clientHeight - 1
 
-  // The captured region: the element plus context, in its scroll content.
+  // The captured region: exactly the element, in its scroll content.
   const first = el.getBoundingClientRect()
-  const elTop = first.top - band.top + scroller.scrollTop
-  const topContext = Math.min(CONTEXT, elTop)
-  const bottomContext = Math.max(0, Math.min(CONTEXT, scroller.scrollHeight - (elTop + first.height)))
-  const totalH = Math.min(first.height + topContext + bottomContext, MAX_STITCH_HEIGHT)
-  const x0 = Math.max(0, first.left - CONTEXT)
-  const x1 = Math.min(window.innerWidth, first.right + CONTEXT)
+  const totalH = Math.min(first.height, MAX_STITCH_HEIGHT)
+  const x0 = Math.max(0, first.left)
+  const x1 = Math.min(window.innerWidth, first.right)
   /** Viewport y of the region's first row, measured after each scroll. */
-  const regionTop = () => el.getBoundingClientRect().top - topContext
+  const regionTop = () => el.getBoundingClientRect().top
 
   let out: HTMLCanvasElement | null = null
   let ctx: CanvasRenderingContext2D | null = null
@@ -175,7 +170,7 @@ async function captureTall(el: Element): Promise<HTMLCanvasElement> {
 export async function captureElement(el: Element): Promise<HTMLCanvasElement> {
   const r = el.getBoundingClientRect()
   const band = bandFor(scrollerFor(el))
-  if (r.height + CONTEXT * 2 > band.bottom - band.top) return captureTall(el)
+  if (r.height > band.bottom - band.top) return captureTall(el)
   if (r.top < band.top || r.bottom > band.bottom || r.right < 0 || r.left > window.innerWidth) {
     el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' })
   }

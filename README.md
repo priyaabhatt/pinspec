@@ -75,7 +75,7 @@ Esc while the card is open discards the pin; the toolbar's ✕ turns pinspec off
 
 | Section | Contents |
 | --- | --- |
-| Before | The selected element with a little surrounding context, plus its tag, classes and text. Untagged and full width when there's no After |
+| Before | The selected element, cropped to its own box, plus its tag, classes and text. Untagged and full width when there's no After |
 | After | Your pasted image, or the live preview of your CSS changes. Left out when you've pasted nothing and changed no CSS |
 | Changes | Each CSS row as a sentence, e.g. "Change the width from 232px to w-88 (352px), the nearest step to 350px." |
 | Comment | Your comment, as typed or dictated |
