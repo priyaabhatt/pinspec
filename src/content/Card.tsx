@@ -70,33 +70,38 @@ export function Card(p: Props) {
   const pos = place(p.rect, height)
   const canCopy = p.comment.trim().length > 0 && !p.busy
 
-  // ⌘V anywhere in the card: images go to the after slot, even while the
-  // comment has focus; text goes where the cursor is, or into the comment.
-  // The paste router delivers it here before the page can interfere.
-  useEffect(() =>
-    onPinspecPaste((e, target) => {
-      if (!ref.current?.contains(target)) return
-      const data = e.clipboardData
-      if (!data) return
-      const image = Array.from(data.items).find((i) => i.kind === 'file' && i.type.startsWith('image/'))
-      const file = image?.getAsFile()
-      if (file) {
+  // ⌘V anywhere in pinspec while the card is open (the card, the { } picker,
+  // the toolbar): images go to the after slot, even while the comment has
+  // focus; text goes where the cursor is, or into the comment. The paste
+  // router delivers it here before the page's own paste handlers.
+  const latest = useRef(p)
+  latest.current = p
+  useEffect(
+    () =>
+      onPinspecPaste((e, target) => {
+        const p = latest.current
+        const data = e.clipboardData
+        if (!data) return
+        const image = Array.from(data.items).find((i) => i.kind === 'file' && i.type.startsWith('image/'))
+        const file = image?.getAsFile()
+        if (file) {
+          e.preventDefault()
+          p.onAfterFile(file)
+          return
+        }
+        const text = data.getData('text/plain')
+        if (!text) return
+        if (target.closest('input, textarea')) {
+          // A page handler that ran first may still have cancelled the default
+          // insertion; insert the text ourselves then.
+          if (e.defaultPrevented) document.execCommand('insertText', false, text)
+          return
+        }
         e.preventDefault()
-        p.onAfterFile(file)
-        return
-      }
-      const text = data.getData('text/plain')
-      if (!text) return
-      if (target.closest('input, textarea')) {
-        // A page handler that ran first may still have cancelled the default
-        // insertion; insert the text ourselves then.
-        if (e.defaultPrevented) document.execCommand('insertText', false, text)
-        return
-      }
-      e.preventDefault()
-      p.onComment(p.comment ? `${p.comment} ${text}` : text)
-      commentRef.current?.focus()
-    }),
+        p.onComment(p.comment ? `${p.comment} ${text}` : text)
+        commentRef.current?.focus()
+      }),
+    [],
   )
 
   return (

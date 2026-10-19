@@ -1,7 +1,9 @@
 // Pastes inside pinspec (⌘V, or a dictation app pasting for you) are caught on
-// the window in the capture phase, before any of the page's own paste
-// handlers: many web apps cancel or swallow every paste for their editor,
-// which would otherwise stop text and images reaching pinspec's card.
+// the window in the capture phase, ahead of the page's document and element
+// paste handlers: many web apps cancel or swallow every paste for their
+// editor, which would otherwise stop text and images reaching pinspec's card.
+// A window capture listener the page added before pinspec mounted still runs
+// first; if it cancels the paste, the card inserts the text itself.
 
 type Handler = (e: ClipboardEvent, target: Element) => void
 
