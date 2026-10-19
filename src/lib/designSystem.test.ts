@@ -190,3 +190,48 @@ describe('snapping after values', () => {
     expect(none.snap('color', '#fff000')).toBeNull()
   })
 })
+
+describe('sites with Tailwind-style token names but no Tailwind, and arbitrary and dark: classes', () => {
+  // A site with Tailwind-style token names but no Tailwind (no --spacing).
+  const lookalike = createDesignSystem(
+    {
+      spacing: null,
+      spaces: [],
+      colors: [{ name: '--color-primary', rgba: [37, 99, 235, 1] }],
+      radii: [{ name: '--radius-lg', px: 8 }],
+      fontSizes: [{ name: '--text-sm', px: 14 }],
+      fontWeights: [],
+    },
+    page,
+  )
+
+  it('writes var() on a site without Tailwind, even for Tailwind-style names', () => {
+    expect(lookalike.snap('background-color', '#2563EB')?.token).toBe('var(--color-primary)')
+    expect(lookalike.snap('border-radius', '8px')?.token).toBe('var(--radius-lg)')
+    expect(lookalike.nameBefore('background-color', '#2563EB', [])).toBe('var(--color-primary)')
+  })
+
+  it('keeps lengths raw on a site without Tailwind, even with matching class names', () => {
+    expect(lookalike.nameBefore('border-radius', '8px', ['rounded-lg'])).toBe('8px')
+    expect(lookalike.nameBefore('font-size', '14px', ['text-sm'])).toBe('14px')
+  })
+
+  it('shows an arbitrary colour as its value, not a token with the same hex', () => {
+    expect(tw.nameBefore('color', '#6B7280', ['text-[#6b7280]'])).toBe('#6B7280')
+    expect(tw.nameBefore('border-top-color', '#6B7280', ['border-[#6b7280]'])).toBe('#6B7280')
+  })
+
+  it('ignores arbitrary classes that aren’t this colour', () => {
+    expect(tw.nameBefore('color', '#6B7280', ['text-[14px]', 'text-gray-500'])).toBe('text-gray-500')
+    expect(tw.nameBefore('color', '#6B7280', ['text-[#111111]'])).toBe('text-muted-foreground')
+  })
+
+  it('names a dark: colour class when it is the one in effect', () => {
+    expect(tw.nameBefore('background-color', '#6B7280', ['bg-background', 'dark:bg-gray-500'])).toBe('dark:bg-gray-500')
+  })
+
+  it('names a dark: class when it is the one in effect, preferring unprefixed classes', () => {
+    expect(tw.nameBefore('width', '232px', ['dark:w-58'])).toBe('dark:w-58')
+    expect(tw.nameBefore('width', '232px', ['dark:w-58', 'w-58'])).toBe('w-58')
+  })
+})

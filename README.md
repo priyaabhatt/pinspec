@@ -69,7 +69,7 @@ Then load the `dist` folder as above.
 5. Optional: click **{ }**, tick properties, then type their after values.
 6. Click **Copy** (or press **⌘↵**) and paste the image into Codex, Claude Code or Cursor.
 
-✕, or Esc while the card is open, discards the pin. Pressing the pointer button in the toolbar lets go of the element but keeps your comment, After and CSS rows (the draft) for the next element you pick. Dragging the toolbar moves it anywhere on the page.
+Esc while the card is open discards the pin; the toolbar's ✕ turns pinspec off. Pressing the pointer button in the toolbar lets go of the element but keeps your comment, After and CSS rows (the draft) for the next element you pick. Dragging the toolbar moves it anywhere on the page.
 
 ### The copied image
 
@@ -103,12 +103,16 @@ After a rebuild, click ↻ on pinspec's card in `chrome://extensions` and reload
 | --- | --- |
 | `src/background/index.ts` | Injects or toggles pinspec on icon click; takes screenshots |
 | `src/content/index.tsx` | Mounts the UI in a shadow root, isolated from the page |
-| `src/content/App.tsx` | Pin state: selecting, the card, live edits and copy |
+| `src/content/App.tsx` | Renders the pin and holds UI-only state (the picker, the toast) |
 | `src/content/Selector.tsx` | Element selection overlay |
 | `src/content/Card.tsx` | Annotation card, paste handling and CSS rows |
 | `src/content/CssPicker.tsx` | Property picker with checkboxes and the class list |
 | `src/content/tokens.ts` | Reads design tokens from the page's CSS |
-| `src/lib/snap.ts` | Snapping logic (unit tested) |
+| `src/lib/pin.ts` | A pin's contents and lifecycle: pick, Remove, Copy, Discard (unit tested) |
+| `src/content/pinEnvironment.ts` | The browser behind the pin: screenshots, clipboard, live preview |
+| `src/lib/cssRow.ts` | One CSS row resolved for the live preview, the card and the handoff image |
+| `src/lib/designSystem.ts` | The page's design system: snap and name values (unit tested) |
+| `src/lib/snap.ts` | Snapping rules and token kinds, used by the design system |
 | `e2e/pinspec.test.mjs` | End-to-end tests: pin flow, picker, selection, tall capture, custom tokens |
 | `src/content/compose.ts` | Draws the final PNG |
 | `build/postcss-shadow-safe.js` | Makes Tailwind's output work inside a shadow root |
