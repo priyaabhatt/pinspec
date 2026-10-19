@@ -45,6 +45,9 @@
       .activity ul { margin: 0; padding: 0; }
       .panel { margin-top: 32px; height: 240px; overflow: auto; border: 1px solid #e5e7eb; border-radius: var(--radius-lg); }
       .panel .inner { height: 720px; padding: 16px; background: linear-gradient(#eff6ff, #fdf2f8); }
+      .icon-btn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #e5e7eb; border-radius: 4px; background: transparent; }
+      .card { position: relative; }
+      .catcher { position: absolute; inset: 0 0 auto 0; height: 90px; } /* invisible overlay, like a click-catcher */
       .btn-ghost { height: 32px; padding: 0 12px; border-radius: 4px; border: 1px solid #e5e7eb; background: transparent; }
     </style>
   </head>
@@ -54,9 +57,13 @@
       <div class="card">
         <h1 class="title">Workspace settings</h1>
         <p class="muted">Changes apply to everyone in the workspace.</p>
+        <div class="catcher"></div>
         <div class="row">
           <button class="btn inline-flex items-center rounded-sm" onclick="alert('page click leaked')">Save changes</button>
           <button class="btn-ghost">Cancel</button>
+          <button class="icon-btn" aria-label="Settings">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+          </button>
         </div>
       </div>
       <!-- Taller than the viewport, under a sticky header: tests scroll-and-stitch capture. -->

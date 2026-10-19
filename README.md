@@ -21,7 +21,7 @@ When a designer hands a developer a screenshot, the coding agent has to guess wh
 ## Features
 
 - **Works on any page:** production, Vercel previews and localhost. It reads the rendered page; no source code or dev install needed.
-- **Precise selection:** hover to highlight, ↑ and ↓ to move between parent and child, click to pick.
+- **Precise selection:** hover to highlight, ↑ and ↓ to move between parent and child, click to pick. Icons and elements under invisible overlays are easy to reach.
 - **Before and After:** the element is captured automatically; paste the target image with ⌘V.
 - **CSS rows:** tick the properties you want to change and type the new values. They're applied live on the page.
 - **Snapped to the design system:** reads Tailwind v4 and shadcn tokens from the page, so `350px` becomes `w-88` and `#6B7280` becomes `text-muted-foreground`. Mark any row **exact** to keep your value.
@@ -63,7 +63,7 @@ Then load the `dist` folder as above.
 ## Usage
 
 1. Click the pinspec icon or press **⌥⇧P** (**Alt+Shift+P** on Windows and Linux). The toolbar appears and selection starts. The same shortcut turns pinspec off; change it at `chrome://extensions/shortcuts`.
-2. Hover and click the element to change. **↑** selects its parent, **↓** goes back, **Esc** cancels.
+2. Hover and click the element to change. The label shows where you are (`div.card › button.btn`). **↑** selects the parent, **↓** steps back down or into the child under the pointer, **Esc** cancels.
 3. Write or dictate what should change. The comment is required.
 4. Optional: press **⌘V** in the card to paste an After image.
 5. Optional: click **{ }**, tick properties, then type their after values.
