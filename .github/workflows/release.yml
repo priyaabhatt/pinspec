@@ -1,7 +1,12 @@
-# On every merge to main: check, build, and publish the ready-to-load
-# extension to the `extension` branch. Install once with
-#   git clone -b extension https://github.com/priyaabhatt/pinspec.git pinspec-extension
-# then load that folder in chrome://extensions. Update with `git pull`.
+# On every merge to main: check and build the extension, then
+#   1. publish it to the `extension` branch, ready to load unpacked
+#      (git clone -b extension https://github.com/priyaabhatt/pinspec.git),
+#   2. upload it to the Chrome Web Store and submit it for review, once the
+#      store credentials are set (see store/AUTO-PUBLISH.md).
+#
+# Each build gets its own version, major.minor from package.json plus this
+# workflow's run number (e.g. 0.1.27), because the store only accepts a
+# version higher than the last one.
 
 name: Build extension
 
@@ -20,6 +25,12 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+      PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
+      CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+      CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+      REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,6 +42,19 @@ jobs:
       - run: npm test
       - run: npm run build
 
+      - name: Stamp the build version
+        run: |
+          base=$(node -p "require('./package.json').version.split('.').slice(0, 2).join('.')")
+          version="$base.${{ github.run_number }}"
+          node -e "
+            const fs = require('fs')
+            const m = JSON.parse(fs.readFileSync('dist/manifest.json', 'utf8'))
+            m.version = process.argv[1]
+            fs.writeFileSync('dist/manifest.json', JSON.stringify(m, null, 2) + '\n')
+          " "$version"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          (cd dist && zip -qr "../pinspec-$version.zip" .)
+
       - name: Publish to the extension branch
         uses: peaceiris/actions-gh-pages@v4
         with:
@@ -40,10 +64,21 @@ jobs:
           enable_jekyll: true # no .nojekyll file in the extension folder
           user_name: github-actions[bot]
           user_email: 41898282+github-actions[bot]@users.noreply.github.com
-          full_commit_message: Build ${{ github.sha }}
+          full_commit_message: Build ${{ env.VERSION }} from ${{ github.sha }}
 
       - name: Upload zip
         uses: actions/upload-artifact@v4
         with:
-          name: pinspec-extension
-          path: dist/
+          name: pinspec-${{ env.VERSION }}
+          path: pinspec-${{ env.VERSION }}.zip
+
+      - name: Publish to the Chrome Web Store
+        if: ${{ env.EXTENSION_ID != '' }}
+        # The store rejects an upload while an earlier version is still in
+        # review. Don't fail the build for that; the next merge tries again.
+        continue-on-error: true
+        run: npx --yes chrome-webstore-upload-cli@4 --source "pinspec-$VERSION.zip"
+
+      - name: Note when store publishing is off
+        if: ${{ env.EXTENSION_ID == '' }}
+        run: echo "::notice::Chrome Web Store credentials aren't set, so this build was not uploaded. See store/AUTO-PUBLISH.md."

@@ -122,7 +122,7 @@ Built with React, Tailwind CSS v4, shadcn/ui and Vite.
 
 ## Releasing
 
-Bump the version in `package.json` and `public/manifest.json`, merge, and push a tag such as `v0.2.0`. The Release workflow attaches `pinspec-0.2.0.zip` to a GitHub release. The Chrome Web Store listing text, graphics and submission steps are in [`store/`](store/README.md).
+Every merge to `main` builds the extension, publishes it to the `extension` branch, and, once set up, uploads it to the Chrome Web Store for review. Users get it through Chrome's automatic updates. Setup: [`store/AUTO-PUBLISH.md`](store/AUTO-PUBLISH.md). The listing text and graphics are in [`store/`](store/README.md).
 
 ## Contributing
 
