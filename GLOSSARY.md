@@ -61,12 +61,8 @@ The handoff image's CSS rows, each written as one instruction, e.g. "Change the 
 _Avoid_: CSS table, diff
 
 **Handoff image**:
-The single PNG a copy produces: Before and After (or just the element, when there's no After), the changes, comment and footer.
+The single PNG a copy produces: Before and After (or just the element, when there's no After), the changes and the comment.
 _Avoid_: export, screenshot, spec image
-
-**Footer**:
-The short instructions to the agent at the bottom of every handoff image.
-_Avoid_: prompt, agent instructions
 
 **Copy**:
 Composing the handoff image, putting it on the clipboard, and discarding the pin.

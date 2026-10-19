@@ -5,7 +5,7 @@ import type { PinEnvironment } from '@/lib/pin'
 import { captureElement } from './capture'
 import { compose, toPng } from './compose'
 import { caption } from './describe'
-import { footer, tidy } from './footer'
+import { tidy } from './comment'
 import { LivePreview } from './livePreview'
 import { classList, readValue } from './styles'
 import { readDesignSystem } from './tokens'
@@ -28,12 +28,6 @@ export function pageEnvironment(): PinEnvironment {
           afterCaption: { pasted: 'Pasted target', 'live preview': 'Live preview of the changes below', none: '' }[h.afterSource],
           changes: h.changes,
           comment: tidy(h.comment),
-          footer: footer({
-            hasSystem: h.hasSystem,
-            hasChanges: h.changes.length > 0,
-            hasExact: h.hasExact,
-            hasPastedAfter: h.afterSource === 'pasted',
-          }),
         }),
       ),
     // Handing the clipboard a promise keeps the click's user activation alive
