@@ -67,7 +67,6 @@ export function Card(p: Props) {
   }, [p.el])
 
   const pos = place(p.rect, height)
-  const canCopy = p.canCopy
 
   // ⌘V anywhere in the card: images go to the after slot, even while the
   // comment has focus; text goes into the comment.
@@ -105,7 +104,7 @@ export function Card(p: Props) {
         }
       }}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canCopy) {
+        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && p.canCopy) {
           e.preventDefault()
           p.onCopy()
         } else if (e.key === 'Backspace' && !(e.target as Element).closest('input, textarea')) {
@@ -167,9 +166,9 @@ export function Card(p: Props) {
           }}
         />
         <div className="ml-auto">
-          <Tooltip label={canCopy ? 'Copy image and finish' : 'Write a comment first'} shortcut="⌘↵">
-            <span tabIndex={canCopy ? undefined : 0}>
-              <Button size="sm" aria-label="Copy" disabled={!canCopy} onClick={p.onCopy}>
+          <Tooltip label={p.canCopy ? 'Copy image and finish' : 'Write a comment first'} shortcut="⌘↵">
+            <span tabIndex={p.canCopy ? undefined : 0}>
+              <Button size="sm" aria-label="Copy" disabled={!p.canCopy} onClick={p.onCopy}>
                 <Copy className="size-3.5" />
                 {p.busy ? 'Copying…' : 'Copy'}
               </Button>

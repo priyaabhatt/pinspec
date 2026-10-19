@@ -128,11 +128,11 @@ describe('live preview', () => {
 describe('copy', () => {
   it('needs an element and a comment', async () => {
     const { pin } = await pinWithElement()
-    expect(pin.canCopy).toBe(false)
+    expect(pin.get().canCopy).toBe(false)
     pin.setComment('wider')
-    expect(pin.canCopy).toBe(true)
+    expect(pin.get().canCopy).toBe(true)
     pin.removeElement()
-    expect(pin.canCopy).toBe(false)
+    expect(pin.get().canCopy).toBe(false)
   })
 
   it('renders the handoff, ends the pin and restores the page on success', async () => {

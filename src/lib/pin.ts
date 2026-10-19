@@ -104,10 +104,6 @@ export class Pin {
     return () => this.listeners.delete(fn)
   }
 
-  get canCopy() {
-    return this.state.canCopy
-  }
-
   /** The pointer button: start selecting, or cancel selecting (keeping the draft). */
   toggleSelecting() {
     if (this.state.stage === 'selecting') this.cancelSelecting()
@@ -194,7 +190,7 @@ export class Pin {
    * ends; on failure it's kept so nothing is lost.
    */
   async copy(): Promise<Outcome> {
-    if (!this.canCopy) return { ok: false, error: 'Nothing to copy yet' }
+    if (!this.state.canCopy) return { ok: false, error: 'Nothing to copy yet' }
     const s = this.state
     const el = s.element!
     const rows = s.rows.flatMap((r) => s.resolved.get(r.id)?.handoff ?? [])
@@ -235,12 +231,10 @@ export class Pin {
   private set(patch: Partial<PinState>) {
     const next = { ...this.state, ...patch }
     // Rows are re-resolved whenever they, the element or the design system change.
-    if (patch.rows || patch.element !== undefined || patch.designSystem) {
-      next.resolved = resolveAll(next, this.env)
-    }
+    if (affectsRows(patch)) next.resolved = resolveAll(next, this.env)
     next.canCopy = !!next.element && !!next.before && next.comment.trim().length > 0 && !next.busy
     this.state = next
-    if (patch.rows || patch.element !== undefined || patch.designSystem || patch.stage) this.syncPreview()
+    if (affectsRows(patch) || patch.stage) this.syncPreview()
     this.emit()
   }
 
@@ -261,6 +255,11 @@ export class Pin {
   private emit() {
     for (const fn of this.listeners) fn()
   }
+}
+
+/** Rows resolve against the element and design system, so these changes re-resolve them (and the live preview). */
+function affectsRows(patch: Partial<PinState>) {
+  return !!patch.rows || patch.element !== undefined || !!patch.designSystem
 }
 
 function resolveAll(s: PinState, env: PinEnvironment) {
