@@ -21,7 +21,7 @@ The designer's description of the change, typed or dictated. Required on every p
 _Avoid_: note, message, description
 
 **Before**:
-A screenshot of the element as it is on the page, with a little surrounding context. It is tagged Before only when there is an After; otherwise the handoff image shows the element alone.
+A screenshot of exactly the element as it is on the page: its own box, nothing around it. It is tagged Before only when there is an After; otherwise the handoff image shows the element alone.
 _Avoid_: original, current screenshot
 
 **After**:

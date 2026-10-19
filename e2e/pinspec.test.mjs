@@ -318,6 +318,16 @@ describe('selection', () => {
 })
 
 describe('capture', () => {
+  test('Before is exactly the selected element, with nothing around it', async () => {
+    const { page, ui } = await open('/')
+    await pick(page, ui, 'button.btn', 0.25)
+    const [w, h] = await ui('img[alt=Before]').evaluate((i) => [i.naturalWidth, i.naturalHeight])
+    const r = await page.locator('button.btn').evaluate((e) => e.getBoundingClientRect().toJSON())
+    const dpr = await page.evaluate(() => devicePixelRatio)
+    assert.ok(Math.abs(w - r.width * dpr) <= dpr && Math.abs(h - r.height * dpr) <= dpr, `Before is ${w}×${h} for a ${r.width}×${r.height} element`)
+    await page.close()
+  })
+
   test('elements taller than the viewport are stitched in full and scroll is restored', async () => {
     const { page, ui } = await open('/')
     await page.evaluate(() => window.scrollTo(0, 300))
@@ -330,7 +340,7 @@ describe('capture', () => {
     await ui('img[alt=Before]').waitFor({ timeout: 20_000 })
     const [, h] = await ui('img[alt=Before]').evaluate((i) => [i.naturalWidth, i.naturalHeight])
     const dpr = await page.evaluate(() => devicePixelRatio)
-    assert.ok(Math.abs(h - (cssHeight + 32) * dpr) <= 2 * dpr, `stitched height ${h} for a ${cssHeight}px element`)
+    assert.ok(Math.abs(h - cssHeight * dpr) <= 2 * dpr, `stitched height ${h} for a ${cssHeight}px element`)
     assert.equal(await page.evaluate(() => window.scrollY), 300)
     assert.equal(await page.locator('.topbar').getAttribute('style'), null, 'sticky header restored')
     await page.close()
