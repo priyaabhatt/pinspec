@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <rect x="4" y="4" width="120" height="120" rx="28" fill="#18181B"/>
-  <circle cx="64" cy="64" r="30" fill="none" stroke="#fff" stroke-width="10"/>
-  <path d="M64 18v22M64 88v22M18 64h22M88 64h22" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
-  <circle cx="64" cy="64" r="9" fill="#3B82F6"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Selection box -->
+  <rect x="13.5" y="19.5" width="68" height="15" fill="#FFFFFF" stroke="#30BBFF" stroke-width="3"/>
+  <!-- Pointer -->
+  <path d="M38 38 L82 65 L56 72 L39 84 Z" fill="#000000" stroke="#000000" stroke-width="12" stroke-linejoin="round"/>
 </svg>
