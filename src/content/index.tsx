@@ -3,6 +3,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { PortalContainer } from '@/components/ui/portal'
 import { App } from './App'
 import { setEnv } from './env'
+import { installPasteRouter } from './pasteRouter'
 import css from './styles.css?inline'
 
 // Injected on demand by the background worker when the toolbar icon is
@@ -16,9 +17,10 @@ declare global {
 
 let host: HTMLElement | null = null
 let root: Root | null = null
+let uninstallPasteRouter: (() => void) | null = null
 
 /** Keys typed into pinspec must not reach the page's own shortcuts. */
-const CONTAINED = ['keydown', 'keyup', 'keypress', 'input', 'focusin', 'focusout', 'paste', 'copy', 'cut']
+const CONTAINED = ['keydown', 'keyup', 'keypress', 'input', 'focusin', 'focusout', 'copy', 'cut']
 
 function mount() {
   host = document.createElement('pinspec-ui')
@@ -36,6 +38,7 @@ function mount() {
   for (const type of CONTAINED) shadow.addEventListener(type, (e) => e.stopPropagation())
   document.documentElement.appendChild(host)
   setEnv(host, shadow)
+  uninstallPasteRouter = installPasteRouter(host)
 
   root = createRoot(container)
   root.render(
@@ -51,6 +54,7 @@ function unmount() {
   // Let React run cleanups (restoring live edits) before the node goes away.
   queueMicrotask(() => {
     root?.unmount()
+    uninstallPasteRouter?.()
     host?.remove()
     root = null
     host = null

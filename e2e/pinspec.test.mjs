@@ -209,6 +209,44 @@ describe('pin flow', () => {
   })
 })
 
+describe('pasting', () => {
+  // Dictation apps paste with ⌘V. Many web apps cancel or swallow every paste
+  // for their own editor; pinspec must still get it.
+  const pageHandlers = {
+    'a page that cancels pastes': `document.addEventListener('paste', (e) => e.preventDefault(), true)`,
+    'a page that swallows pastes': `document.addEventListener('paste', (e) => { e.preventDefault(); e.stopImmediatePropagation() }, true)`,
+  }
+
+  for (const [name, script] of Object.entries(pageHandlers)) {
+    test(`dictated text lands in the comment on ${name}`, async () => {
+      const { page, ui } = await open('/')
+      await page.evaluate(script)
+      await pick(page, ui, 'button.btn', 0.25)
+      await page.evaluate(() => navigator.clipboard.writeText('make it wider'))
+      await page.keyboard.press('ControlOrMeta+V')
+      await page.waitForTimeout(150)
+      assert.equal(await ui('textarea').inputValue(), 'make it wider')
+      await page.close()
+    })
+  }
+
+  test('a pasted image goes to the After slot on a page that swallows pastes', async () => {
+    const { page, ui } = await open('/')
+    await page.evaluate(pageHandlers['a page that swallows pastes'])
+    await pick(page, ui, 'button.btn', 0.25)
+    await page.evaluate(async () => {
+      const c = document.createElement('canvas')
+      c.width = c.height = 8
+      const png = await new Promise((r) => c.toBlob(r, 'image/png'))
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })])
+    })
+    await page.keyboard.press('ControlOrMeta+V')
+    await ui('img[alt=After]').waitFor({ timeout: 5000 })
+    assert.equal(await ui('textarea').inputValue(), '')
+    await page.close()
+  })
+})
+
 describe('selection', () => {
   test('icons select as one svg, overlays are skipped, ↑ and ↓ move through the tree', async () => {
     const { page } = await open('/')
