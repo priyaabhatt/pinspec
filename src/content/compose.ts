@@ -97,7 +97,8 @@ export function compose(input: ComposeInput): HTMLCanvasElement {
   scratch.font = `400 26px ${SANS}`
   const commentLines = wrap(scratch, input.comment, W - PAD * 2)
   scratch.font = `400 17px ${SANS}`
-  const footerLines = input.footer.flatMap((p) => wrap(scratch, p, W - PAD * 2))
+  const footerParas = input.footer.map((p) => wrap(scratch, p, W - PAD * 2))
+  const FOOTER_PARA_GAP = 10
 
   const ROW_H = 52
   let h = PAD
@@ -105,7 +106,7 @@ export function compose(input: ComposeInput): HTMLCanvasElement {
   h += panelH
   if (input.rows.length) h += 44 + 22 + 14 + input.rows.length * ROW_H
   h += 44 + 22 + 14 + commentLines.length * 36
-  h += 36 + 1 + 24 + footerLines.length * 26
+  h += 36 + 1 + 24 + footerParas.flat().length * 26 + (footerParas.length - 1) * FOOTER_PARA_GAP
   h += PAD
 
   const canvas = document.createElement('canvas')
@@ -209,10 +210,13 @@ export function compose(input: ComposeInput): HTMLCanvasElement {
   y += 1 + 24
   ctx.font = `400 17px ${SANS}`
   ctx.fillStyle = C.muted
-  for (const line of footerLines) {
-    ctx.fillText(line, PAD, y + 4)
-    y += 26
-  }
+  footerParas.forEach((lines, i) => {
+    if (i) y += FOOTER_PARA_GAP
+    for (const line of lines) {
+      ctx.fillText(line, PAD, y + 4)
+      y += 26
+    }
+  })
 
   return canvas
 }
