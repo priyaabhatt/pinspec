@@ -9,16 +9,17 @@ import type { DesignSystem } from './designSystem'
 
 export type Stage = 'idle' | 'selecting' | 'capturing' | 'card'
 
+/** Anything the handoff image can draw: a screenshot canvas or a pasted image. */
+export type Picture = CanvasImageSource & { width: number; height: number }
+
 export interface AfterImage {
   url: string
-  img: CanvasImageSource & { width: number; height: number }
+  img: Picture
 }
 
-type Shot = CanvasImageSource & { width: number; height: number }
-
 export interface HandoffInput {
-  before: Shot
-  after: Shot | null
+  before: HTMLCanvasElement
+  after: Picture | null
   /** Where the After came from: pasted, the live preview, or nothing. */
   afterSource: 'pasted' | 'live preview' | 'none'
   element: Element
@@ -31,7 +32,7 @@ export interface HandoffInput {
 /** Everything the pin needs from the outside world. */
 export interface PinEnvironment {
   /** Screenshot the element (the live preview shows in it). */
-  capture(el: Element): Promise<Shot>
+  capture(el: Element): Promise<HTMLCanvasElement>
   /** Read the page's design system for a newly selected element. */
   designSystem(): DesignSystem
   /** The element's current value for a CSS property. */
@@ -51,7 +52,7 @@ export interface PinEnvironment {
 export interface PinState {
   stage: Stage
   element: Element | null
-  before: Shot | null
+  before: HTMLCanvasElement | null
   comment: string
   after: AfterImage | null
   rows: CssRow[]
@@ -59,6 +60,8 @@ export interface PinState {
   resolved: Map<number, ResolvedRow>
   designSystem: DesignSystem | null
   busy: boolean
+  /** An element, a Before and a comment, and not already copying. */
+  canCopy: boolean
 }
 
 /** `error` is null when the action was overtaken (Esc, Remove, Discard) and there's nothing to report. */
@@ -74,6 +77,7 @@ const EMPTY: PinState = {
   resolved: new Map(),
   designSystem: null,
   busy: false,
+  canCopy: false,
 }
 
 export class Pin {
@@ -101,8 +105,7 @@ export class Pin {
   }
 
   get canCopy() {
-    const s = this.state
-    return !!s.element && !!s.before && s.comment.trim().length > 0 && !s.busy
+    return this.state.canCopy
   }
 
   /** The pointer button: start selecting, or cancel selecting (keeping the draft). */
@@ -235,8 +238,9 @@ export class Pin {
     if (patch.rows || patch.element !== undefined || patch.designSystem) {
       next.resolved = resolveAll(next, this.env)
     }
+    next.canCopy = !!next.element && !!next.before && next.comment.trim().length > 0 && !next.busy
     this.state = next
-    this.syncPreview()
+    if (patch.rows || patch.element !== undefined || patch.designSystem || patch.stage) this.syncPreview()
     this.emit()
   }
 

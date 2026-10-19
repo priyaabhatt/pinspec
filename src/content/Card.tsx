@@ -2,11 +2,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Copy, ImagePlus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
-import type { ResolvedRow } from '@/lib/cssRow'
+import type { CssRow, ResolvedRow } from '@/lib/cssRow'
 import type { DesignSystem } from '@/lib/designSystem'
 import { cn } from '@/lib/utils'
 import { CssPicker } from './CssPicker'
-import type { AfterImage, Row } from './types'
+import type { AfterImage } from '@/lib/pin'
 
 interface Props {
   el: Element
@@ -19,14 +19,15 @@ interface Props {
   after: AfterImage | null
   onAfterFile: (file: File) => void
   onClearAfter: () => void
-  rows: Row[]
+  rows: CssRow[]
   resolved: Map<number, ResolvedRow>
   onAddRow: (prop: string) => number
-  onRow: (id: number, patch: Partial<Row>) => void
+  onRow: (id: number, patch: Partial<CssRow>) => void
   onRemoveRow: (id: number) => void
   pickerOpen: boolean
   onPickerOpen: (open: boolean) => void
   busy: boolean
+  canCopy: boolean
   onRemove: () => void
   onCopy: () => void
 }
@@ -66,7 +67,7 @@ export function Card(p: Props) {
   }, [p.el])
 
   const pos = place(p.rect, height)
-  const canCopy = p.comment.trim().length > 0 && !p.busy
+  const canCopy = p.canCopy
 
   // ⌘V anywhere in the card: images go to the after slot, even while the
   // comment has focus; text goes into the comment.
@@ -132,7 +133,7 @@ export function Card(p: Props) {
           {p.rows.length > 0 && (
             <div className="flex flex-col gap-1.5 border-t pt-2">
               {p.rows.map((r) => (
-                <CssRow
+                <CssRowEditor
                   key={r.id}
                   row={r}
                   view={p.resolved.get(r.id)!}
@@ -225,7 +226,7 @@ function AfterSlot({ after, onClear }: { after: AfterImage | null; onClear: () =
   )
 }
 
-function CssRow({
+function CssRowEditor({
   row,
   view,
   focus,
@@ -233,11 +234,11 @@ function CssRow({
   onChange,
   onRemove,
 }: {
-  row: Row
+  row: CssRow
   view: ResolvedRow
   focus: boolean
   onFocused: () => void
-  onChange: (patch: Partial<Row>) => void
+  onChange: (patch: Partial<CssRow>) => void
   onRemove: () => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)

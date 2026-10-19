@@ -103,6 +103,16 @@ describe('the draft', () => {
 })
 
 describe('live preview', () => {
+  it('is left alone while typing the comment', async () => {
+    const { pin, log } = await pinWithElement()
+    pin.updateRow(pin.addRow('width'), { after: '350px' })
+    const applied = log.previews.length
+    pin.setComment('w')
+    pin.setComment('wi')
+    expect(log.previews.length).toBe(applied)
+    expect(pin.get().canCopy).toBe(true)
+  })
+
   it('applies valid after values to the element and restores the page on discard', async () => {
     const { pin, log } = await pinWithElement()
     const id = pin.addRow('width')
