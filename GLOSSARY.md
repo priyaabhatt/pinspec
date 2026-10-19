@@ -69,7 +69,7 @@ Composing the handoff image, putting it on the clipboard, and discarding the pin
 _Avoid_: export, share
 
 **Discard**:
-Ending a pin without copying it (✕, or Esc while the card is open). Nothing is kept. Cancelling selection is not a discard: the draft is kept.
+Ending a pin without copying it: Esc while the card is open, or turning pinspec off with the toolbar's ✕. Nothing is kept. Cancelling selection is not a discard: the draft is kept.
 _Avoid_: cancel, delete
 
 ## Interface

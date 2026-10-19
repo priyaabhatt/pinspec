@@ -69,7 +69,7 @@ Then load the `dist` folder as above.
 5. Optional: click **{ }**, tick properties, then type their after values.
 6. Click **Copy** (or press **⌘↵**) and paste the image into Codex, Claude Code or Cursor.
 
-✕, or Esc while the card is open, discards the pin. Pressing the pointer button in the toolbar lets go of the element but keeps your comment, After and CSS rows (the draft) for the next element you pick. Dragging the toolbar moves it anywhere on the page.
+Esc while the card is open discards the pin; the toolbar's ✕ turns pinspec off. Pressing the pointer button in the toolbar lets go of the element but keeps your comment, After and CSS rows (the draft) for the next element you pick. Dragging the toolbar moves it anywhere on the page.
 
 ### The copied image
 
