@@ -79,6 +79,8 @@ export class Pin {
   private state: PinState
   private listeners = new Set<() => void>()
   private nextId = 1
+  /** Bumped by every pick and discard, so a slow capture can tell it's stale. */
+  private generation = 0
 
   constructor(
     private env: PinEnvironment,
@@ -116,14 +118,17 @@ export class Pin {
   }
 
   async pick(el: Element): Promise<Outcome> {
+    const generation = ++this.generation
     this.set({ stage: 'capturing' })
     try {
       const before = await this.env.capture(el)
+      // Discarded or re-picked while capturing: leave the pin as it is now.
+      if (generation !== this.generation || this.state.stage !== 'capturing') return { ok: true }
       const rows = this.state.rows.map((r) => ({ ...r, before: this.env.readValue(el, r.prop) }))
       this.set({ stage: 'card', element: el, before, rows, designSystem: this.env.designSystem() })
       return { ok: true }
     } catch (err) {
-      this.set({ stage: 'selecting' })
+      if (generation === this.generation && this.state.stage === 'capturing') this.set({ stage: 'selecting' })
       return { ok: false, error: `Couldn't capture: ${(err as Error).message}` }
     }
   }
@@ -190,6 +195,7 @@ export class Pin {
 
   /** ✕, or Esc while the card is open: end the pin and put the page back. */
   discard() {
+    this.generation++
     if (this.state.after) this.env.release(this.state.after)
     this.state = { ...EMPTY, resolved: new Map() }
     this.env.preview(null, new Map())

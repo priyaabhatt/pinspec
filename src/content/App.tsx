@@ -54,7 +54,10 @@ export function App({ onClose }: { onClose: () => void }) {
   const setAfterFile = async (file: File) => {
     const url = URL.createObjectURL(file)
     try {
-      pin.setAfter({ url, img: await loadImage(url) })
+      const img = await loadImage(url)
+      // Discarded while the image loaded: there's no pin to attach it to.
+      if (pin.get().stage !== 'card') return URL.revokeObjectURL(url)
+      pin.setAfter({ url, img })
     } catch {
       URL.revokeObjectURL(url)
       flash("That image couldn't be read", 'error')

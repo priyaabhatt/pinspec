@@ -4,7 +4,7 @@
 // names are written all stay in here. See GLOSSARY.md ("Design system") and
 // ADR 0005.
 
-import { COLOR_PREFIX, colorClass, hasSystem, hex, isColorProp, matchColor, parsePx, snapValue, type Rgba, type Snap, type Tokens } from './snap'
+import { COLOR_PREFIX, colorClass, hasSystem, hex, isColorProp, isTailwind, matchColor, parsePx, snapValue, type Rgba, type Snap, type Tokens } from './snap'
 
 export interface DesignSystem {
   /** The page exposes any tokens at all. */
@@ -46,15 +46,17 @@ export function createDesignSystem(tokens: Tokens, page: PageReader): DesignSyst
 function nameColor(prop: string, value: string, classes: string[], tokens: Tokens, page: PageReader) {
   const rgba = page.parseColor(value)
   if (!rgba) return value
-  // The element's own colour class settles which of several equal tokens it uses.
+  // The element's own colour class settles which of several equal tokens it
+  // uses; an arbitrary colour class (text-[#6b7280]) is a custom value.
   const prefix = COLOR_PREFIX[prop]
   for (const { cls, utility } of activeUtilities(classes)) {
     if (!prefix || !utility.startsWith(prefix + '-')) continue
+    if (utility.startsWith(prefix + '-[')) return hex(rgba)
     const token = tokens.colors.find((t) => t.name === `--color-${utility.slice(prefix.length + 1)}`)
     if (token && matchColor(rgba, [token])) return cls
   }
   const match = matchColor(rgba, tokens.colors)
-  return match ? colorClass(prop, match.name) : hex(rgba)
+  return match ? colorClass(prop, match.name, isTailwind(tokens)) : hex(rgba)
 }
 
 /** Utility prefixes that set each length property, most specific first. */
@@ -98,7 +100,8 @@ const LENGTH_UTILITIES: Record<string, string[]> = {
  */
 function lengthClassFor(prop: string, value: string, classes: string[], tokens: Tokens, page: PageReader): string | null {
   const prefixes = LENGTH_UTILITIES[prop]
-  if (!prefixes) return null
+  // Utility classes only mean something on a Tailwind site.
+  if (!prefixes || !isTailwind(tokens)) return null
   const target = prop === 'font-weight' ? Number(value) : parsePx(value, page.remPx)
   if (target === null || !Number.isFinite(target)) return null
   const active = activeUtilities(classes)
@@ -127,17 +130,23 @@ function utilityValue(utility: string, prefix: string, tokens: Tokens): number |
   return (negative ? -1 : 1) * steps * tokens.spacing
 }
 
-/** Breakpoint variants change what's on screen; state variants (hover:, focus:) don't apply now. */
-const STATE_VARIANT = /^(hover|focus|focus-visible|focus-within|active|visited|disabled|enabled|checked|open|placeholder|group-.+|peer-.+|aria-.+|data-.+|first|last|odd|even|before|after|selection|marker|file|print|motion-.+|dark)$/
+/**
+ * Breakpoint and dark: variants can be what's on screen, so they're kept (the
+ * value check decides); state variants (hover:, focus:) don't apply now.
+ */
+const STATE_VARIANT = /^(hover|focus|focus-visible|focus-within|active|visited|disabled|enabled|checked|open|placeholder|group-.+|peer-.+|aria-.+|data-.+|first|last|odd|even|before|after|selection|marker|file|print|motion-.+)$/
 
-/** Classes split into their utility, without state variants or `!` markers. */
+/**
+ * Classes split into their utility, without state variants or `!` markers,
+ * unprefixed classes first so `w-58` wins over `dark:w-58` when both match.
+ */
 function activeUtilities(classes: string[]) {
-  const out: { cls: string; utility: string }[] = []
+  const out: { cls: string; utility: string; variants: number }[] = []
   for (const cls of classes) {
     const parts = cls.split(':')
     const utility = parts.pop()!.replace(/^!|!$/g, '')
     if (parts.some((v) => STATE_VARIANT.test(v))) continue
-    out.push({ cls, utility })
+    out.push({ cls, utility, variants: parts.length })
   }
-  return out
+  return out.sort((a, b) => a.variants - b.variants)
 }

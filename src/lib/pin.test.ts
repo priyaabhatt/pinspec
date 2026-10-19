@@ -172,3 +172,17 @@ describe('discard', () => {
     expect(log.released).toEqual(['blob:1'])
   })
 })
+
+describe('regressions from the code review of #24–#26', () => {
+  it('stays discarded when Discard happens while the element is being captured', async () => {
+    const { env } = fakeEnvironment()
+    let finish!: () => void
+    const slow: PinEnvironment = { ...env, capture: () => new Promise((r) => (finish = () => r({ width: 1, height: 1 } as unknown as HTMLCanvasElement))) }
+    const pin = new Pin(slow, 'selecting')
+    const picking = pin.pick(element(232))
+    pin.discard()
+    finish()
+    await picking
+    expect(pin.get()).toMatchObject({ stage: 'idle', element: null })
+  })
+})
