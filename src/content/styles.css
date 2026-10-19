@@ -5,7 +5,8 @@
  * the host page's own shadcn tokens. All rem is converted to px at build time.
  */
 :host {
-  /* Always light, like the copied handoff image, whatever the page or system theme. */
+  /* The card and picker are always light, like the copied handoff image, whatever
+     the page or system theme; the toolbar is dark (--toolbar below). */
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -71,6 +72,9 @@
   -webkit-font-smoothing: antialiased;
 }
 
-* {
-  border-color: var(--border);
+/* In a layer, so border-* colour utilities can override it. */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
 }

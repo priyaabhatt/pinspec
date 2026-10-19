@@ -272,6 +272,26 @@ describe('pasting', () => {
   })
 })
 
+describe('styles', () => {
+  // Tailwind utilities that set --tw-* variables (shadows, rings, translate)
+  // must survive the shadow-root build step, and border colours the base rule.
+  test('the toolbar and card float on a shadow, and the toolbar is dark', async () => {
+    const { page, ui } = await open('/')
+    await pick(page, ui, 'button.btn', 0.25)
+    const style = (sel) =>
+      page.evaluate((sel) => {
+        const cs = getComputedStyle(document.querySelector('pinspec-ui').shadowRoot.querySelector(sel))
+        return { shadow: cs.boxShadow, bg: cs.backgroundColor, border: cs.borderTopColor }
+      }, sel)
+    const toolbar = await style('.cursor-grab')
+    const card = await style('[tabindex="-1"].shadow-float')
+    for (const s of [toolbar, card]) assert.match(s.shadow, /0px 16px 40px -8px/)
+    assert.match(toolbar.bg, /oklch\(0\.205/)
+    assert.doesNotMatch(toolbar.border, /oklch\(0\.922/, 'the toolbar border is not the light theme border')
+    await page.close()
+  })
+})
+
 describe('selection', () => {
   test('icons select as one svg, overlays are skipped, ↑ and ↓ move through the tree', async () => {
     const { page } = await open('/')
