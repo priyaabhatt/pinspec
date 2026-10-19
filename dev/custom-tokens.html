@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>pinspec test page: custom tokens</title>
+    <!-- A hand-rolled token set with no Tailwind, to test snapping on other naming conventions. -->
+    <style>
+      :root {
+        --space-1: 4px;
+        --space-2: 8px;
+        --space-4: 16px;
+        --space-6: 24px;
+        --rounded-sm: 4px;
+        --rounded-md: 8px;
+        --font-size-sm: 14px;
+        --font-size-body: 16px;
+        --fw-medium: 500;
+        --fw-bold: 700;
+        --brand-primary: #2563eb;
+        --ink: #111827;
+        --shadow-card: 0 1px 2px rgb(0 0 0 / 0.1);
+      }
+      body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: var(--ink); }
+      .page { max-width: 640px; margin: 64px auto; padding: 0 var(--space-6); }
+      .cta { padding: var(--space-2) var(--space-4); border: 0; border-radius: var(--rounded-sm); background: var(--brand-primary); color: #fff; font-size: var(--font-size-sm); font-weight: var(--fw-medium); }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <h1>Billing</h1>
+      <button class="cta">Upgrade plan</button>
+    </div>
+  </body>
+</html>

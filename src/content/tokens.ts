@@ -1,8 +1,9 @@
 // Reads the page's design system from its CSS custom properties.
 // Tailwind v4 exposes --spacing, --color-*, --radius-*, --text-*, --font-weight-*;
-// shadcn adds semantic colours like --foreground and --muted-foreground.
+// shadcn adds semantic colours like --foreground and --muted-foreground; other
+// sites use names like --space-4 or --brand-primary. tokenKind sorts them.
 
-import type { ColorToken, DesignSystem, LengthToken } from '@/lib/snap'
+import { tokenKind, type ColorToken, type DesignSystem, type LengthToken } from '@/lib/snap'
 import { parseColor, resolveLength } from './env'
 
 const ROOTISH = /(^|[\s,(]):root\b|(^|[\s,])html\b|:host\b|(^|[\s,])body\b|^\.dark\b|\[data-theme/
@@ -37,29 +38,31 @@ export function readDesignSystem(): DesignSystem {
   for (const prop of Array.from(document.documentElement.style)) if (prop.startsWith('--')) names.add(prop)
 
   const root = getComputedStyle(document.documentElement)
-  const ds: DesignSystem = { spacing: null, colors: [], radii: [], fontSizes: [], fontWeights: [] }
+  const ds: DesignSystem = { spacing: null, spaces: [], colors: [], radii: [], fontSizes: [], fontWeights: [] }
+  const length = (list: LengthToken[], name: string, value: string) => {
+    const px = resolveLength(value)
+    if (px !== null && px >= 0 && px < 9999) list.push({ name, px })
+  }
 
   for (const name of names) {
-    if (name.startsWith('--tw-')) continue
+    const kind = tokenKind(name)
+    if (!kind) continue
     const value = root.getPropertyValue(name).trim()
     if (!value) continue
 
-    if (name === '--spacing') {
-      ds.spacing = resolveLength(value)
-    } else if (name.startsWith('--radius-')) {
-      const px = resolveLength(value)
-      if (px !== null && px < 9999) ds.radii.push({ name, px })
-    } else if (name.startsWith('--text-') && !name.includes('--', 2)) {
-      const px = resolveLength(value)
-      if (px !== null) ds.fontSizes.push({ name, px })
-    } else if (name.startsWith('--font-weight-')) {
+    if (kind === 'spacing-base') ds.spacing = resolveLength(value)
+    else if (kind === 'space') length(ds.spaces, name, value)
+    else if (kind === 'radius') length(ds.radii, name, value)
+    else if (kind === 'font-size') length(ds.fontSizes, name, value)
+    else if (kind === 'font-weight') {
       const n = Number(value)
       if (Number.isFinite(n)) ds.fontWeights.push({ name, px: n })
-    } else if (!/^--(spacing|breakpoint|container|font|leading|tracking|shadow|blur|ease|animate|default|inset|perspective|aspect)/.test(name)) {
+    } else {
       const rgba = parseColor(value)
       if (rgba) ds.colors.push({ name, rgba } satisfies ColorToken)
     }
   }
+  ds.spaces.sort(byPx)
   ds.radii.sort(byPx)
   ds.fontSizes.sort(byPx)
   cached = { at: Date.now(), ds }

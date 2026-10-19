@@ -24,7 +24,7 @@ When a designer hands a developer a screenshot, the coding agent has to guess wh
 - **Precise selection:** hover to highlight, ↑ and ↓ to move between parent and child, click to pick. Icons and elements under invisible overlays are easy to reach.
 - **Before and After:** the element is captured automatically; paste the target image with ⌘V.
 - **CSS rows:** tick the properties you want to change and type the new values. They're applied live on the page.
-- **Snapped to the design system:** reads Tailwind v4 and shadcn tokens from the page, so `350px` becomes `w-88` and `#6B7280` becomes `text-muted-foreground`. Mark any row **exact** to keep your value.
+- **Snapped to the design system:** reads Tailwind v4 and shadcn tokens from the page, so `350px` becomes `w-88` and `#6B7280` becomes `text-muted-foreground`. Sites with their own names (`--space-4`, `--brand-primary`) snap to `var(--space-4)`. Mark any row **exact** to keep your value.
 - **Private by design:** no backend, no network calls, nothing stored. The pin is gone once copied.
 
 <p align="center">
@@ -94,7 +94,7 @@ npm test           # snapping unit tests
 npm run build
 ```
 
-After a rebuild, click ↻ on pinspec's card in `chrome://extensions` and reload the page. `dev/index.html` is a test page with a small Tailwind and shadcn token set; serve it with `cd dev && python3 -m http.server`.
+After a rebuild, click ↻ on pinspec's card in `chrome://extensions` and reload the page. `dev/index.html` is a test page with a small Tailwind and shadcn token set, and `dev/custom-tokens.html` uses hand-rolled token names; serve them with `cd dev && python3 -m http.server`.
 
 ### Project structure
 
