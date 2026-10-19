@@ -29,7 +29,8 @@ const PAD = 40
 const GAP = 32
 const COL = (W - PAD * 2 - GAP) / 2
 const SCALE = 2
-const MAX_PANEL_H = 560
+// Tall enough that stitched captures of long elements stay readable.
+const MAX_PANEL_H = 1200
 const PANEL_PAD = 20
 
 const SANS = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'

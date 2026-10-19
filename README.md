@@ -115,7 +115,6 @@ Built with React, Tailwind CSS v4, shadcn/ui and Vite.
 
 ### Known limitations
 
-- Elements taller than the viewport are captured up to the visible part.
 - Tokens are read from same-origin stylesheets only; browsers block reading rules from other domains.
 - Chrome doesn't allow extensions on `chrome://` pages or the Chrome Web Store.
 

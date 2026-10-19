@@ -5,6 +5,7 @@
 - New logo: a pointer over a selection box.
 - ⌥⇧P (Alt+Shift+P) turns pinspec on and off (#3).
 - The toolbar, card and property picker follow the system's dark mode (#6).
+- Elements taller than the screen are captured in full by scrolling and stitching, including inside scroll containers. Sticky headers are hidden while capturing (#5).
 
 ## 0.1.0 (unreleased)
 

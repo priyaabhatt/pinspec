@@ -38,10 +38,18 @@
       .muted { color: var(--muted-foreground); font-size: var(--text-sm); margin: 0 0 16px; }
       .row { display: flex; gap: 8px; }
       .btn { width: 232px; height: 32px; border-radius: 4px; border: 0; background: var(--primary); color: #fff; font-size: 14px; font-weight: 500; }
+      .topbar { position: sticky; top: 0; z-index: 5; background: #111827; color: #fff; padding: 12px 24px; font-weight: 600; }
+      .activity { margin-top: 32px; border: 1px solid #e5e7eb; border-radius: var(--radius-lg); }
+      .activity li { list-style: none; height: 48px; display: flex; align-items: center; padding: 0 16px; border-top: 1px solid #f3f4f6; }
+      .activity li:nth-child(even) { background: #f9fafb; }
+      .activity ul { margin: 0; padding: 0; }
+      .panel { margin-top: 32px; height: 240px; overflow: auto; border: 1px solid #e5e7eb; border-radius: var(--radius-lg); }
+      .panel .inner { height: 720px; padding: 16px; background: linear-gradient(#eff6ff, #fdf2f8); }
       .btn-ghost { height: 32px; padding: 0 12px; border-radius: 4px; border: 1px solid #e5e7eb; background: transparent; }
     </style>
   </head>
   <body>
+    <div class="topbar">Acme</div>
     <div class="page">
       <div class="card">
         <h1 class="title">Workspace settings</h1>
@@ -51,6 +59,53 @@
           <button class="btn-ghost">Cancel</button>
         </div>
       </div>
+      <!-- Taller than the viewport, under a sticky header: tests scroll-and-stitch capture. -->
+      <section class="activity">
+        <ul>
+            <li>Activity row 1</li>
+            <li>Activity row 2</li>
+            <li>Activity row 3</li>
+            <li>Activity row 4</li>
+            <li>Activity row 5</li>
+            <li>Activity row 6</li>
+            <li>Activity row 7</li>
+            <li>Activity row 8</li>
+            <li>Activity row 9</li>
+            <li>Activity row 10</li>
+            <li>Activity row 11</li>
+            <li>Activity row 12</li>
+            <li>Activity row 13</li>
+            <li>Activity row 14</li>
+            <li>Activity row 15</li>
+            <li>Activity row 16</li>
+            <li>Activity row 17</li>
+            <li>Activity row 18</li>
+            <li>Activity row 19</li>
+            <li>Activity row 20</li>
+            <li>Activity row 21</li>
+            <li>Activity row 22</li>
+            <li>Activity row 23</li>
+            <li>Activity row 24</li>
+            <li>Activity row 25</li>
+            <li>Activity row 26</li>
+            <li>Activity row 27</li>
+            <li>Activity row 28</li>
+            <li>Activity row 29</li>
+            <li>Activity row 30</li>
+            <li>Activity row 31</li>
+            <li>Activity row 32</li>
+            <li>Activity row 33</li>
+            <li>Activity row 34</li>
+            <li>Activity row 35</li>
+            <li>Activity row 36</li>
+            <li>Activity row 37</li>
+            <li>Activity row 38</li>
+            <li>Activity row 39</li>
+            <li>Activity row 40</li>
+        </ul>
+      </section>
+      <!-- Scrolls inside its own container. -->
+      <div class="panel"><div class="inner">Inner scroll container: top</div></div>
     </div>
   </body>
 </html>
