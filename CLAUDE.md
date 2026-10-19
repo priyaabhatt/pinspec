@@ -15,3 +15,14 @@
 ## Checks before pushing
 
 `npm run typecheck`, `npm test`, `npm run test:e2e` and `npm run build` must all pass. For the e2e tests here, set `PINSPEC_CHROMIUM=/opt/pw-browsers/chromium` if Playwright's own Chromium isn't installed.
+
+## Skills
+
+The skills in `.claude/skills/` (see its README) apply here as follows:
+
+- **Issue tracker:** GitHub Issues on `priyaabhatt/pinspec`. A PR's spec is the issue it closes ("Closes #N" / "Part of #N"); read it with the GitHub tools.
+- **Standards sources for `code-review`:** this file, the "Contributing" section of `README.md`, `.github/pull_request_template.md`, and `tsconfig.json` (strict TypeScript). Typecheck, tests and the build are enforced by CI, so don't report what they already catch.
+- **PR bodies:** write them with the `pr` skill (Summary, Evidence, Merge Danger). Put the checks you ran under Evidence, and keep the "Closes #N" line. The template in `.github/pull_request_template.md` has the same shape.
+- **Domain language:** `GLOSSARY.md` at the repo root (single context). Use its terms in code, PRs and issues.
+- **Decisions:** `docs/adr/`. Read the ADRs before changing anything they cover.
+- **Feedback loops for `diagnosing-bugs`:** prefer a unit test in `src/**/*.test.ts` (`npx vitest run <file>`) for pure logic, and an e2e test in `e2e/pinspec.test.mjs` (`node --test e2e/pinspec.test.mjs` after `npm run build`) for anything that needs the page, the shadow root, screenshots or the clipboard.
