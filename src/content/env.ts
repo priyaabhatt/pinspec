@@ -95,25 +95,3 @@ export function defaultStyleFor(tag: string): CSSStyleDeclaration | null {
   return defaults.get(tag)!
 }
 
-/**
- * Match pinspec's theme to the page being pinned, not the system: a dark page
- * gets a dark toolbar and card. Reads the page's background (body, then html);
- * if both are transparent, the page's color-scheme decides.
- */
-export function syncTheme() {
-  if (!host) return
-  host.setAttribute('data-theme', pageIsDark() ? 'dark' : 'light')
-}
-
-function pageIsDark() {
-  for (const el of [document.body, document.documentElement]) {
-    if (!el) continue
-    const rgba = parseColor(getComputedStyle(el).backgroundColor)
-    if (rgba && rgba[3] > 0.5) {
-      const [r, g, b] = rgba.map((c) => c / 255)
-      return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.4
-    }
-  }
-  const scheme = getComputedStyle(document.documentElement).colorScheme
-  return scheme.includes('dark') && !scheme.includes('light')
-}

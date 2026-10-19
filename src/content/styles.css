@@ -27,12 +27,8 @@
   --highlight: oklch(0.623 0.214 259.815);
 }
 
-/*
- * Follows the page being pinned, not the system: index.tsx sets
- * data-theme="dark" on the host when the page's background is dark.
- * The copied image is always light.
- */
-:host([data-theme='dark']) {
+/* Follows the page being pinned, not the system; see theme.ts. */
+:host([data-pinspec-theme='dark']) {
   --background: oklch(0.205 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);

@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Pin } from '@/lib/pin'
 import { loadImage } from './capture'
-import { syncTheme } from './env'
 import { Card } from './Card'
 import { pageEnvironment } from './pinEnvironment'
 import { Selector } from './Selector'
+import { syncTheme } from './theme'
 import { Toolbar } from './Toolbar'
 import { useRect } from './useRect'
 
@@ -42,9 +42,10 @@ export function App({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener('keydown', onKey, true)
   }, [stage, pickerOpen, discard])
 
+  // The page may switch theme while pinspec is open; check whenever the stage changes.
+  useEffect(syncTheme, [stage])
+
   const pick = async (target: Element) => {
-    // The page may have switched theme since pinspec opened.
-    syncTheme()
     const outcome = await pin.pick(target)
     if (!outcome.ok) flash(outcome.error, 'error')
   }

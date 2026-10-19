@@ -2,7 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { PortalContainer } from '@/components/ui/portal'
 import { App } from './App'
-import { setEnv, syncTheme } from './env'
+import { setEnv } from './env'
+import { syncTheme } from './theme'
 import css from './styles.css?inline'
 
 // Injected on demand by the background worker when the toolbar icon is
