@@ -4,14 +4,18 @@ import { footer, tidy } from './footer'
 const base = { hasSystem: true, hasRows: true, hasExact: false, hasPastedAfter: false }
 
 describe('footer', () => {
-  it('scopes the change to the Before element on every copy', () => {
-    for (const ctx of [base, { ...base, hasRows: false }, { ...base, hasPastedAfter: true }]) {
+  it('scopes the change to the Before element whenever there is an After', () => {
+    for (const ctx of [base, { ...base, hasRows: false, hasPastedAfter: true }]) {
       expect(footer(ctx)[0]).toMatch(/^Change only the element shown in Before/)
     }
   })
 
+  it('points at the only picture when there is no After', () => {
+    expect(footer({ ...base, hasRows: false })[0]).toMatch(/^Change only the element shown above/)
+  })
+
   it('describes where the target comes from', () => {
-    expect(footer(base)[0]).toContain('applying the CSS rows')
+    expect(footer(base)[0]).toContain('Make the changes listed')
     expect(footer({ ...base, hasPastedAfter: true })[0]).toContain('take precedence over the image')
     expect(footer({ ...base, hasRows: false })[0]).toContain('described in the comment')
   })
@@ -20,7 +24,7 @@ describe('footer', () => {
     expect(footer(base)).toHaveLength(2)
     expect(footer({ ...base, hasSystem: false }).at(-1)).toContain('No design tokens were found')
     expect(footer({ ...base, hasSystem: false, hasRows: false })).toHaveLength(2)
-    expect(footer({ ...base, hasExact: true }).at(-1)).toContain('exact must use the value as given')
+    expect(footer({ ...base, hasExact: true }).at(-1)).toContain('must be used as given')
   })
 })
 

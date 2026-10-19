@@ -4,7 +4,7 @@
 // rules here are unit tested without a browser. See GLOSSARY.md ("Pin",
 // "Draft", "Copy", "Discard") and ADR 0006.
 
-import { resolveRow, type CssRow, type HandoffRow, type ResolvedRow } from './cssRow'
+import { resolveRow, type CssRow, type ResolvedRow } from './cssRow'
 import type { DesignSystem } from './designSystem'
 
 export type Stage = 'idle' | 'selecting' | 'capturing' | 'card'
@@ -23,7 +23,8 @@ export interface HandoffInput {
   /** Where the After came from: pasted, the live preview, or nothing. */
   afterSource: 'pasted' | 'live preview' | 'none'
   element: Element
-  rows: HandoffRow[]
+  /** Each CSS row as a sentence. */
+  changes: string[]
   comment: string
   hasSystem: boolean
   hasExact: boolean
@@ -193,17 +194,17 @@ export class Pin {
     if (!this.state.canCopy) return { ok: false, error: 'Nothing to copy yet' }
     const s = this.state
     const el = s.element!
-    const rows = s.rows.flatMap((r) => s.resolved.get(r.id)?.handoff ?? [])
+    const changes = s.rows.flatMap((r) => s.resolved.get(r.id)?.handoff ?? [])
     this.set({ busy: true })
     const png = (async () => {
       // No pasted After: the live preview, captured, becomes the After.
-      const after = s.after?.img ?? (rows.length ? await this.env.capture(el) : null)
+      const after = s.after?.img ?? (changes.length ? await this.env.capture(el) : null)
       return this.env.render({
         before: s.before!,
         after,
-        afterSource: s.after ? 'pasted' : rows.length ? 'live preview' : 'none',
+        afterSource: s.after ? 'pasted' : changes.length ? 'live preview' : 'none',
         element: el,
-        rows,
+        changes,
         comment: s.comment,
         hasSystem: !!s.designSystem?.found,
         hasExact: s.rows.some((r) => r.exact && s.resolved.get(r.id)?.handoff),

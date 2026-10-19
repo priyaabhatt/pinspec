@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- CSS rows read as instructions in the copied image: "Change the width from 232px to w-88 (352px), the nearest step to 350px."
+- Pasting an After is optional in every sense: with no After and no CSS rows, the copied image shows just the element, untagged and full width, and the card drops its Before tag until you paste one.
 - The card and picker are always light, matching the copied image, instead of following the system's dark mode. The toolbar is dark, and both float on a stronger shadow so they stand out on white pages.
 - Shadows, focus rings, dashed borders, border colours and the toolbar message's centring now render: a build step had been silently resetting them inside pinspec's shadow root.
 - In the card, the arrow sits centred between the before value and the after box, and the card's ✕ button is gone. Esc while the card is open still discards the pin.

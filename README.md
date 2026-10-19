@@ -15,7 +15,7 @@
 When a designer hands a developer a screenshot, the coding agent has to guess which element is meant, what the target values are, and which design tokens to use. pinspec writes the handoff for the agent instead: the exact element, its current CSS, the target, the values snapped to the codebase's design system, and the designer's comment, all in one PNG on the clipboard.
 
 <p align="center">
-  <img src="docs/images/handoff.png" width="720" alt="A pinspec handoff image: Before and After screenshots of a button, CSS rows such as width 232px to w-88, the comment, and a short instruction footer for the agent." />
+  <img src="docs/images/handoff.png" width="720" alt="A pinspec handoff image: Before and After screenshots of a button, changes written as sentences such as &quot;Change the width from 232px to w-88 (352px), the nearest step to 350px.&quot;, the comment, and a short instruction footer for the agent." />
 </p>
 
 ## Features
@@ -75,9 +75,9 @@ Esc while the card is open discards the pin; the toolbar's ✕ turns pinspec off
 
 | Section | Contents |
 | --- | --- |
-| Before | The selected element with a little surrounding context, plus its tag, classes and text |
-| After | Your pasted image, or the live preview of your CSS changes |
-| CSS | Before → after rows, with the snapped token beside each value |
+| Before | The selected element with a little surrounding context, plus its tag, classes and text. Untagged and full width when there's no After |
+| After | Your pasted image, or the live preview of your CSS changes. Left out when you've pasted nothing and changed no CSS |
+| Changes | Each CSS row as a sentence, e.g. "Change the width from 232px to w-88 (352px), the nearest step to 350px." |
 | Comment | Your comment, as typed or dictated |
 | Footer | Short instructions telling the agent to change only this element and use existing tokens |
 
