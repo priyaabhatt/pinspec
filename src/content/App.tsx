@@ -97,7 +97,6 @@ export function App({ onClose }: { onClose: () => void }) {
             onPickerOpen={setPickerOpen}
             busy={busy}
             onRemove={toggleSelecting}
-            onCancel={discard}
             onCopy={copy}
           />
         </>
