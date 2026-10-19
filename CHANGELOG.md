@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- The toolbar, card and picker match the page being pinned (light or dark) instead of the system setting.
+- In the card, the arrow sits centred between the before value and the after box, and the cancel button is gone (Esc or the toolbar's ✕ still discard).
+
 ## 0.1.0 (2026-10-19)
 
 First release.

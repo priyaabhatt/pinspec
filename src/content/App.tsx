@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Pin } from '@/lib/pin'
 import { loadImage } from './capture'
+import { syncTheme } from './env'
 import { Card } from './Card'
 import { pageEnvironment } from './pinEnvironment'
 import { Selector } from './Selector'
@@ -42,6 +43,8 @@ export function App({ onClose }: { onClose: () => void }) {
   }, [stage, pickerOpen, discard])
 
   const pick = async (target: Element) => {
+    // The page may have switched theme since pinspec opened.
+    syncTheme()
     const outcome = await pin.pick(target)
     if (!outcome.ok) flash(outcome.error, 'error')
   }
@@ -97,7 +100,6 @@ export function App({ onClose }: { onClose: () => void }) {
             onPickerOpen={setPickerOpen}
             busy={busy}
             onRemove={toggleSelecting}
-            onCancel={discard}
             onCopy={copy}
           />
         </>

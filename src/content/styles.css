@@ -27,29 +27,31 @@
   --highlight: oklch(0.623 0.214 259.815);
 }
 
-/* Follows the system theme. The copied image is always light. */
-@media (prefers-color-scheme: dark) {
-  :host {
-    --background: oklch(0.205 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.235 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.3 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.637 0.237 25.331);
-    --border: oklch(1 0 0 / 12%);
-    --input: oklch(1 0 0 / 16%);
-    --ring: oklch(0.556 0 0);
-    --highlight: oklch(0.623 0.214 259.815);
-  }
+/*
+ * Follows the page being pinned, not the system: index.tsx sets
+ * data-theme="dark" on the host when the page's background is dark.
+ * The copied image is always light.
+ */
+:host([data-theme='dark']) {
+  --background: oklch(0.205 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.235 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.3 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.637 0.237 25.331);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.556 0 0);
+  --highlight: oklch(0.623 0.214 259.815);
 }
 
 @theme inline {

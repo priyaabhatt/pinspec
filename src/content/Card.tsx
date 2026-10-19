@@ -28,7 +28,6 @@ interface Props {
   onPickerOpen: (open: boolean) => void
   busy: boolean
   onRemove: () => void
-  onCancel: () => void
   onCopy: () => void
 }
 
@@ -148,11 +147,6 @@ export function Card(p: Props) {
         </div>
       </div>
       <div className="flex items-center gap-1 border-t px-2 py-1.5">
-        <Tooltip label="Cancel" shortcut="Esc">
-          <Button variant="ghost" size="icon-sm" aria-label="Cancel" onClick={p.onCancel}>
-            <X />
-          </Button>
-        </Tooltip>
         <CssPicker
           el={p.el}
           ds={p.ds}
@@ -258,10 +252,11 @@ function CssRow({
         <span className="w-[108px] shrink-0 truncate font-medium" title={row.prop}>
           {row.prop}
         </span>
-        <span className="min-w-0 flex-1 truncate text-muted-foreground" title={row.before}>
+        <span className="min-w-0 truncate text-muted-foreground" title={row.before}>
           {view.before}
         </span>
-        <span className="text-muted-foreground">→</span>
+        {/* The arrow sits centred in the space between the before value and the after box. */}
+        <span className="min-w-4 flex-1 text-center text-muted-foreground">→</span>
         <input
           ref={inputRef}
           value={row.after}
