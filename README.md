@@ -28,7 +28,7 @@ When a designer hands a developer a screenshot, the coding agent has to guess wh
 - **Private by design:** no backend, no network calls, nothing stored. The pin is gone once copied.
 
 <p align="center">
-  <img src="docs/images/card.png" width="720" alt="The pinspec annotation card attached to a selected button, showing the Before image, the after-image slot, a comment and three CSS rows." />
+  <img src="docs/images/card.png" width="720" alt="The pinspec annotation card attached to a selected button, showing the element's screenshot, the after-image slot, a comment and three CSS rows." />
 </p>
 
 ## Install

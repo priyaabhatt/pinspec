@@ -30,7 +30,7 @@ export function pageEnvironment(): PinEnvironment {
           comment: tidy(h.comment),
           footer: footer({
             hasSystem: h.hasSystem,
-            hasRows: h.changes.length > 0,
+            hasChanges: h.changes.length > 0,
             hasExact: h.hasExact,
             hasPastedAfter: h.afterSource === 'pasted',
           }),

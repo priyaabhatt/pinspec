@@ -62,10 +62,9 @@ export function resolveRow(
   const raw = color ? ds.swatch(row.before) : row.before
   const from = raw && raw !== before ? `${before} (${raw})` : before
   let to = typed
-  if (row.exact) to = `exactly ${typed}`
+  if (row.exact) to = `exactly ${color ? (ds.swatch(typed) ?? typed) : typed}`
   else if (snap) {
-    const value = color ? ds.swatch(snap.value) ?? snap.value : snap.value
-    to = `${snap.token} (${value})`
+    to = `${snap.token} (${snap.value})`
     if (!snap.exact) to += `, the nearest ${color ? 'token' : 'step'} to ${typed}`
   }
   return {

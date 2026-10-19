@@ -51,13 +51,13 @@ Replacing a typed value with the nearest token or scale step, e.g. `350px` becom
 _Avoid_: round, normalise
 
 **Exact**:
-A CSS row that keeps the typed value instead of snapping.
+A CSS row that keeps the typed value instead of snapping. The handoff image says "exactly" for it: "Change the width from 232px to exactly 350px."
 _Avoid_: raw, override
 
 ## Output
 
-**Change**:
-A CSS row written as one sentence in the handoff image, e.g. "Change the width from 232px to w-88 (352px), the nearest step to 350px."
+**Changes**:
+The handoff image's CSS rows, each written as one instruction, e.g. "Change the width from 232px to w-88 (352px), the nearest step to 350px."
 _Avoid_: CSS table, diff
 
 **Handoff image**:

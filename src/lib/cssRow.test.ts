@@ -74,6 +74,12 @@ describe('a colour row', () => {
     expect(r.hint).toEqual({ text: 'text-muted-foreground', struck: false })
   })
 
+  it('writes an exact colour as hex, like every other colour', () => {
+    expect(resolve({ prop: 'color', before: '#123456', after: '#7a8494', exact: true }).handoff).toBe(
+      'Change the text colour from #123456 to exactly #7A8494.',
+    )
+  })
+
   it('says which token is nearest when the typed colour isn’t one', () => {
     expect(resolve({ prop: 'background-color', before: '#123456', after: '#7a8494' }).handoff).toBe(
       'Change the background colour from #123456 to bg-muted-foreground (#6B7280), the nearest token to #7a8494.',
