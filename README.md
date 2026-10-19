@@ -62,7 +62,7 @@ Then load the `dist` folder as above.
 
 ## Usage
 
-1. Click the pinspec icon. The toolbar appears and selection starts.
+1. Click the pinspec icon or press **⌥⇧P** (**Alt+Shift+P** on Windows and Linux). The toolbar appears and selection starts. The same shortcut turns pinspec off; change it at `chrome://extensions/shortcuts`.
 2. Hover and click the element to change. **↑** selects its parent, **↓** goes back, **Esc** cancels.
 3. Write or dictate what should change. The comment is required.
 4. Optional: press **⌘V** in the card to paste an After image.

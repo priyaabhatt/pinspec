@@ -26,5 +26,14 @@
     "activeTab",
     "scripting"
   ],
-  "homepage_url": "https://github.com/priyaabhatt/pinspec"
+  "homepage_url": "https://github.com/priyaabhatt/pinspec",
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+P",
+        "mac": "Alt+Shift+P"
+      },
+      "description": "Turn pinspec on or off"
+    }
+  }
 }
