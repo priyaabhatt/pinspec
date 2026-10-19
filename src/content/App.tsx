@@ -5,7 +5,6 @@ import { loadImage } from './capture'
 import { Card } from './Card'
 import { pageEnvironment } from './pinEnvironment'
 import { Selector } from './Selector'
-import { syncTheme } from './theme'
 import { Toolbar } from './Toolbar'
 import { useRect } from './useRect'
 
@@ -41,9 +40,6 @@ export function App({ onClose }: { onClose: () => void }) {
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
   }, [stage, pickerOpen, discard])
-
-  // The page may switch theme while pinspec is open; check whenever the stage changes.
-  useEffect(syncTheme, [stage])
 
   const pick = async (target: Element) => {
     const outcome = await pin.pick(target)
