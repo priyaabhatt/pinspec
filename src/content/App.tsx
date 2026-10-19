@@ -12,11 +12,11 @@ export function App({ onClose }: { onClose: () => void }) {
   // The pin owns its contents and lifecycle; App renders it and holds UI-only
   // state (the picker, the toast). Activating pinspec starts selecting.
   const [pin] = useState(() => new Pin(pageEnvironment(), 'selecting'))
-  const { stage, element: el, before, comment, after, rows, resolved, designSystem, busy } = useSyncExternalStore(pin.subscribe, pin.get)
+  const { stage, element: el, before, comment, after, rows, resolved, designSystem, busy, canCopy } = useSyncExternalStore(pin.subscribe, pin.get)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [toast, setToast] = useState<{ text: string; tone: 'ok' | 'error' } | null>(null)
   const rect = useRect(stage === 'card' ? el : null)
-  const beforeUrl = useMemo(() => (before instanceof HTMLCanvasElement ? before.toDataURL('image/png') : ''), [before])
+  const beforeUrl = useMemo(() => before?.toDataURL('image/png') ?? '', [before])
 
   const flash = useCallback((text: string, tone: 'ok' | 'error' = 'ok') => {
     setToast({ text, tone })
@@ -43,7 +43,7 @@ export function App({ onClose }: { onClose: () => void }) {
 
   const pick = async (target: Element) => {
     const outcome = await pin.pick(target)
-    if (!outcome.ok) flash(outcome.error, 'error')
+    if (!outcome.ok && outcome.error) flash(outcome.error, 'error')
   }
 
   const toggleSelecting = () => {
@@ -52,13 +52,16 @@ export function App({ onClose }: { onClose: () => void }) {
   }
 
   const setAfterFile = async (file: File) => {
-    const url = URL.createObjectURL(file)
-    try {
-      pin.setAfter({ url, img: await loadImage(url) })
-    } catch {
-      URL.revokeObjectURL(url)
-      flash("That image couldn't be read", 'error')
-    }
+    const outcome = await pin.pasteAfter(async () => {
+      const url = URL.createObjectURL(file)
+      try {
+        return { url, img: await loadImage(url) }
+      } catch (err) {
+        URL.revokeObjectURL(url)
+        throw err
+      }
+    })
+    if (!outcome.ok && outcome.error) flash(outcome.error, 'error')
   }
 
   const copy = async () => {
@@ -66,7 +69,7 @@ export function App({ onClose }: { onClose: () => void }) {
     if (outcome.ok) {
       setPickerOpen(false)
       flash('Copied. Paste it into your agent')
-    } else flash(outcome.error, 'error')
+    } else if (outcome.error) flash(outcome.error, 'error')
   }
 
   return (
@@ -96,8 +99,8 @@ export function App({ onClose }: { onClose: () => void }) {
             pickerOpen={pickerOpen}
             onPickerOpen={setPickerOpen}
             busy={busy}
+            canCopy={canCopy}
             onRemove={toggleSelecting}
-            onCancel={discard}
             onCopy={copy}
           />
         </>

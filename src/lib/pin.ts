@@ -9,16 +9,17 @@ import type { DesignSystem } from './designSystem'
 
 export type Stage = 'idle' | 'selecting' | 'capturing' | 'card'
 
+/** Anything the handoff image can draw: a screenshot canvas or a pasted image. */
+export type Picture = CanvasImageSource & { width: number; height: number }
+
 export interface AfterImage {
   url: string
-  img: CanvasImageSource & { width: number; height: number }
+  img: Picture
 }
 
-type Shot = CanvasImageSource & { width: number; height: number }
-
 export interface HandoffInput {
-  before: Shot
-  after: Shot | null
+  before: HTMLCanvasElement
+  after: Picture | null
   /** Where the After came from: pasted, the live preview, or nothing. */
   afterSource: 'pasted' | 'live preview' | 'none'
   element: Element
@@ -31,7 +32,7 @@ export interface HandoffInput {
 /** Everything the pin needs from the outside world. */
 export interface PinEnvironment {
   /** Screenshot the element (the live preview shows in it). */
-  capture(el: Element): Promise<Shot>
+  capture(el: Element): Promise<HTMLCanvasElement>
   /** Read the page's design system for a newly selected element. */
   designSystem(): DesignSystem
   /** The element's current value for a CSS property. */
@@ -51,7 +52,7 @@ export interface PinEnvironment {
 export interface PinState {
   stage: Stage
   element: Element | null
-  before: Shot | null
+  before: HTMLCanvasElement | null
   comment: string
   after: AfterImage | null
   rows: CssRow[]
@@ -59,9 +60,12 @@ export interface PinState {
   resolved: Map<number, ResolvedRow>
   designSystem: DesignSystem | null
   busy: boolean
+  /** An element, a Before and a comment, and not already copying. */
+  canCopy: boolean
 }
 
-export type Outcome = { ok: true } | { ok: false; error: string }
+/** `error` is null when the action was overtaken (Esc, Remove, Discard) and there's nothing to report. */
+export type Outcome = { ok: true } | { ok: false; error: string | null }
 
 const EMPTY: PinState = {
   stage: 'idle',
@@ -73,12 +77,18 @@ const EMPTY: PinState = {
   resolved: new Map(),
   designSystem: null,
   busy: false,
+  canCopy: false,
 }
 
 export class Pin {
   private state: PinState
   private listeners = new Set<() => void>()
   private nextId = 1
+  /**
+   * Bumped by every pick, Remove, cancel and Discard, so a slow capture or
+   * image load can tell it was overtaken.
+   */
+  private generation = 0
 
   constructor(
     private env: PinEnvironment,
@@ -94,11 +104,6 @@ export class Pin {
     return () => this.listeners.delete(fn)
   }
 
-  get canCopy() {
-    const s = this.state
-    return !!s.element && !!s.before && s.comment.trim().length > 0 && !s.busy
-  }
-
   /** The pointer button: start selecting, or cancel selecting (keeping the draft). */
   toggleSelecting() {
     if (this.state.stage === 'selecting') this.cancelSelecting()
@@ -107,22 +112,28 @@ export class Pin {
 
   /** Remove: let go of the element and go back to selecting. The draft is kept. */
   removeElement() {
+    this.generation++
     this.set({ stage: 'selecting', element: null, before: null })
   }
 
   /** Esc or the pointer button while selecting. The draft waits for the next pick. */
   cancelSelecting() {
+    this.generation++
     this.set({ stage: 'idle' })
   }
 
   async pick(el: Element): Promise<Outcome> {
+    const generation = ++this.generation
     this.set({ stage: 'capturing' })
     try {
       const before = await this.env.capture(el)
+      // Overtaken while capturing: leave the pin as it is now.
+      if (generation !== this.generation) return { ok: false, error: null }
       const rows = this.state.rows.map((r) => ({ ...r, before: this.env.readValue(el, r.prop) }))
       this.set({ stage: 'card', element: el, before, rows, designSystem: this.env.designSystem() })
       return { ok: true }
     } catch (err) {
+      if (generation !== this.generation) return { ok: false, error: null }
       this.set({ stage: 'selecting' })
       return { ok: false, error: `Couldn't capture: ${(err as Error).message}` }
     }
@@ -130,6 +141,26 @@ export class Pin {
 
   setComment(comment: string) {
     this.set({ comment })
+  }
+
+  /**
+   * Paste an After image that takes a moment to load. If the pin moves on
+   * meanwhile (Remove, Discard, a new pick), the image is freed, not attached.
+   */
+  async pasteAfter(load: () => Promise<AfterImage>): Promise<Outcome> {
+    const generation = this.generation
+    let after: AfterImage
+    try {
+      after = await load()
+    } catch {
+      return { ok: false, error: "That image couldn't be read" }
+    }
+    if (generation !== this.generation || this.state.stage !== 'card') {
+      this.env.release(after)
+      return { ok: false, error: null }
+    }
+    this.setAfter(after)
+    return { ok: true }
   }
 
   setAfter(after: AfterImage | null) {
@@ -159,7 +190,7 @@ export class Pin {
    * ends; on failure it's kept so nothing is lost.
    */
   async copy(): Promise<Outcome> {
-    if (!this.canCopy) return { ok: false, error: 'Nothing to copy yet' }
+    if (!this.state.canCopy) return { ok: false, error: 'Nothing to copy yet' }
     const s = this.state
     const el = s.element!
     const rows = s.rows.flatMap((r) => s.resolved.get(r.id)?.handoff ?? [])
@@ -190,6 +221,7 @@ export class Pin {
 
   /** ✕, or Esc while the card is open: end the pin and put the page back. */
   discard() {
+    this.generation++
     if (this.state.after) this.env.release(this.state.after)
     this.state = { ...EMPTY, resolved: new Map() }
     this.env.preview(null, new Map())
@@ -199,11 +231,10 @@ export class Pin {
   private set(patch: Partial<PinState>) {
     const next = { ...this.state, ...patch }
     // Rows are re-resolved whenever they, the element or the design system change.
-    if (patch.rows || patch.element !== undefined || patch.designSystem) {
-      next.resolved = resolveAll(next, this.env)
-    }
+    if (affectsRows(patch)) next.resolved = resolveAll(next, this.env)
+    next.canCopy = !!next.element && !!next.before && next.comment.trim().length > 0 && !next.busy
     this.state = next
-    this.syncPreview()
+    if (affectsRows(patch) || patch.stage) this.syncPreview()
     this.emit()
   }
 
@@ -224,6 +255,11 @@ export class Pin {
   private emit() {
     for (const fn of this.listeners) fn()
   }
+}
+
+/** Rows resolve against the element and design system, so these changes re-resolve them (and the live preview). */
+function affectsRows(patch: Partial<PinState>) {
+  return !!patch.rows || patch.element !== undefined || !!patch.designSystem
 }
 
 function resolveAll(s: PinState, env: PinEnvironment) {

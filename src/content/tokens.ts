@@ -43,7 +43,7 @@ function readTokens(): Tokens {
   for (const prop of Array.from(document.documentElement.style)) if (prop.startsWith('--')) names.add(prop)
 
   const root = getComputedStyle(document.documentElement)
-  const ds: Tokens = { spacing: null, spaces: [], colors: [], radii: [], fontSizes: [], fontWeights: [] }
+  const tokens: Tokens = { spacing: null, spaces: [], colors: [], radii: [], fontSizes: [], fontWeights: [] }
   const length = (list: LengthToken[], name: string, value: string) => {
     const px = resolveLength(value)
     if (px !== null && px >= 0 && px < 9999) list.push({ name, px })
@@ -55,22 +55,22 @@ function readTokens(): Tokens {
     const value = root.getPropertyValue(name).trim()
     if (!value) continue
 
-    if (kind === 'spacing-base') ds.spacing = resolveLength(value)
-    else if (kind === 'space') length(ds.spaces, name, value)
-    else if (kind === 'radius') length(ds.radii, name, value)
-    else if (kind === 'font-size') length(ds.fontSizes, name, value)
+    if (kind === 'spacing-base') tokens.spacing = resolveLength(value)
+    else if (kind === 'space') length(tokens.spaces, name, value)
+    else if (kind === 'radius') length(tokens.radii, name, value)
+    else if (kind === 'font-size') length(tokens.fontSizes, name, value)
     else if (kind === 'font-weight') {
       const n = Number(value)
-      if (Number.isFinite(n)) ds.fontWeights.push({ name, px: n })
+      if (Number.isFinite(n)) tokens.fontWeights.push({ name, px: n })
     } else {
       const rgba = parseColor(value)
-      if (rgba) ds.colors.push({ name, rgba } satisfies ColorToken)
+      if (rgba) tokens.colors.push({ name, rgba } satisfies ColorToken)
     }
   }
-  ds.spaces.sort(byPx)
-  ds.radii.sort(byPx)
-  ds.fontSizes.sort(byPx)
-  return ds
+  tokens.spaces.sort(byPx)
+  tokens.radii.sort(byPx)
+  tokens.fontSizes.sort(byPx)
+  return tokens
 }
 
 function byPx(a: LengthToken, b: LengthToken) {

@@ -1,10 +1,11 @@
 // Draws the final handoff image: Before | After, CSS rows, comment, footer.
 
 import type { HandoffRow } from '@/lib/cssRow'
+import type { Picture } from '@/lib/pin'
 
 export interface ComposeInput {
-  before: CanvasImageSource & { width: number; height: number }
-  after: (CanvasImageSource & { width: number; height: number }) | null
+  before: Picture
+  after: Picture | null
   /** Short identification of the element: tag, classes, text. */
   caption: string
   /** Where the After came from, e.g. "Live preview of the CSS below". */

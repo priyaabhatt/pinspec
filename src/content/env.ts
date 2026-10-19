@@ -94,3 +94,4 @@ export function defaultStyleFor(tag: string): CSSStyleDeclaration | null {
   }
   return defaults.get(tag)!
 }
+

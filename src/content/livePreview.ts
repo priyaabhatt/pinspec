@@ -1,7 +1,7 @@
 // Applies typed after values to the page as inline !important styles, and
 // puts the element back exactly as it was when the pin ends.
 
-export class LiveEdits {
+export class LivePreview {
   private el: HTMLElement | SVGElement | null = null
   private originals = new Map<string, { value: string; priority: string }>()
 

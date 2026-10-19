@@ -87,8 +87,13 @@ export function isColorProp(prop: string) {
   return prop in COLOR_PREFIX
 }
 
-export function hasSystem(ds: Tokens) {
-  return ds.spacing !== null || [ds.spaces, ds.colors, ds.radii, ds.fontSizes, ds.fontWeights].some((t) => t.length > 0)
+/** Tailwind v4 always defines --spacing; a page without it isn't using Tailwind. */
+export function isTailwind(tokens: Tokens) {
+  return tokens.spacing !== null
+}
+
+export function hasSystem(tokens: Tokens) {
+  return tokens.spacing !== null || [tokens.spaces, tokens.colors, tokens.radii, tokens.fontSizes, tokens.fontWeights].some((t) => t.length > 0)
 }
 
 export type TokenKind = 'spacing-base' | 'space' | 'radius' | 'font-size' | 'font-weight' | 'color'
@@ -113,9 +118,12 @@ export function tokenKind(name: string): TokenKind | null {
   return 'color'
 }
 
-/** Tailwind theme names map to utility classes; anything else is used as var(). */
-function isTailwindName(name: string) {
-  return /^--(radius|text|font-weight|color)-/.test(name)
+/**
+ * Tailwind theme names map to utility classes, but only on a Tailwind site
+ * (one that defines --spacing). Anything else is used as var().
+ */
+function isTailwindName(name: string, tailwind: boolean) {
+  return tailwind && /^--(radius|text|font-weight|color)-/.test(name)
 }
 
 export function parsePx(value: string, remPx = 16): number | null {
@@ -145,24 +153,24 @@ export function snapSpacing(prop: string, px: number, spacing: number): Snap {
  * rounded-lg from --radius-lg, text-sm from --text-sm, font-bold from
  * --font-weight-bold; var(--space-4) for anything that isn't a Tailwind name.
  */
-function lengthClass(prop: string, name: string) {
-  if (!isTailwindName(name)) return `var(${name})`
+function lengthClass(prop: string, name: string, tailwind: boolean) {
+  if (!isTailwindName(name, tailwind)) return `var(${name})`
   if (RADIUS_PROPS.has(prop)) return `rounded-${name.replace(/^--radius-/, '')}`
   if (prop === 'font-size') return `text-${name.replace(/^--text-/, '')}`
   if (prop === 'font-weight') return `font-${name.replace(/^--font-weight-/, '')}`
   return name
 }
 
-export function snapLength(prop: string, px: number, tokens: LengthToken[], unit = 'px'): Snap | null {
+export function snapLength(prop: string, px: number, tokens: LengthToken[], tailwind: boolean, unit = 'px'): Snap | null {
   if (!tokens.length) return null
   let best = tokens[0]
   for (const t of tokens) {
     const d = Math.abs(t.px - px) - Math.abs(best.px - px)
     // On a tie, a Tailwind name (rounded-lg) beats an alias (var(--radius)).
-    if (d < 0 || (d === 0 && isTailwindName(t.name) && !isTailwindName(best.name))) best = t
+    if (d < 0 || (d === 0 && isTailwindName(t.name, tailwind) && !isTailwindName(best.name, tailwind))) best = t
   }
   return {
-    token: lengthClass(prop, best.name),
+    token: lengthClass(prop, best.name, tailwind),
     value: unit === 'px' ? fmtPx(best.px) : String(best.px),
     exact: Math.abs(best.px - px) < 0.01,
   }
@@ -206,8 +214,8 @@ function tokenRank(name: string) {
   return 2
 }
 
-export function colorClass(prop: string, name: string) {
-  if (name.startsWith('--color-')) return `${COLOR_PREFIX[prop] ?? 'text'}-${name.slice(8)}`
+export function colorClass(prop: string, name: string, tailwind: boolean) {
+  if (tailwind && name.startsWith('--color-')) return `${COLOR_PREFIX[prop] ?? 'text'}-${name.slice(8)}`
   return `var(${name})`
 }
 
@@ -223,10 +231,10 @@ export function matchColor(rgba: Rgba, tokens: ColorToken[]): ColorToken | null 
   return exact.sort((a, b) => tokenRank(a.name) - tokenRank(b.name))[0]
 }
 
-export function snapColor(prop: string, rgba: Rgba, tokens: ColorToken[]): Snap | null {
+export function snapColor(prop: string, rgba: Rgba, tokens: ColorToken[], tailwind: boolean): Snap | null {
   if (!tokens.length) return null
   const exact = matchColor(rgba, tokens)
-  if (exact) return { token: colorClass(prop, exact.name), value: hex(exact.rgba), exact: true }
+  if (exact) return { token: colorClass(prop, exact.name, tailwind), value: hex(exact.rgba), exact: true }
   let best = tokens[0]
   let bestD = Infinity
   for (const t of tokens) {
@@ -236,31 +244,32 @@ export function snapColor(prop: string, rgba: Rgba, tokens: ColorToken[]): Snap 
       bestD = d
     }
   }
-  return { token: colorClass(prop, best.name), value: hex(best.rgba), exact: false }
+  return { token: colorClass(prop, best.name, tailwind), value: hex(best.rgba), exact: false }
 }
 
 export function snapValue(
   prop: string,
   value: string,
-  ds: Tokens,
+  tokens: Tokens,
   parseColor: (v: string) => Rgba | null,
   remPx = 16,
 ): Snap | null {
   const v = value.trim()
+  const tailwind = isTailwind(tokens)
   if (!v) return null
   if (isColorProp(prop)) {
     const rgba = parseColor(v)
-    return rgba ? snapColor(prop, rgba, ds.colors) : null
+    return rgba ? snapColor(prop, rgba, tokens.colors, tailwind) : null
   }
   if (prop === 'font-weight') {
     const n = Number(v)
-    return Number.isFinite(n) ? snapLength(prop, n, ds.fontWeights, '') : null
+    return Number.isFinite(n) ? snapLength(prop, n, tokens.fontWeights, tailwind, '') : null
   }
   const px = parsePx(v, remPx)
   if (px === null) return null
-  if (prop in SPACING_PREFIX && ds.spacing) return snapSpacing(prop, px, ds.spacing)
-  if (prop in SPACING_PREFIX && ds.spaces.length) return snapLength(prop, px, ds.spaces)
-  if (RADIUS_PROPS.has(prop)) return snapLength(prop, px, ds.radii)
-  if (prop === 'font-size') return snapLength(prop, px, ds.fontSizes)
+  if (prop in SPACING_PREFIX && tokens.spacing) return snapSpacing(prop, px, tokens.spacing)
+  if (prop in SPACING_PREFIX && tokens.spaces.length) return snapLength(prop, px, tokens.spaces, tailwind)
+  if (RADIUS_PROPS.has(prop)) return snapLength(prop, px, tokens.radii, tailwind)
+  if (prop === 'font-size') return snapLength(prop, px, tokens.fontSizes, tailwind)
   return null
 }

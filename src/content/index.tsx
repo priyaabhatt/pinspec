@@ -51,7 +51,8 @@ function mount() {
 }
 
 function unmount() {
-  // Let React run cleanups (restoring live edits) before the node goes away.
+  // Let React finish rendering the discarded pin (which restores the live
+  // preview) before the node goes away.
   queueMicrotask(() => {
     root?.unmount()
     uninstallPasteRouter?.()
