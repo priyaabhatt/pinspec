@@ -1,0 +1,49 @@
+# On every merge to main: check, build, and publish the ready-to-load
+# extension to the `extension` branch. Install once with
+#   git clone -b extension https://github.com/priyaabhatt/pinspec.git pinspec-extension
+# then load that folder in chrome://extensions. Update with `git pull`.
+
+name: Build extension
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-extension
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      - name: Publish to the extension branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: extension
+          enable_jekyll: true # no .nojekyll file in the extension folder
+          user_name: github-actions[bot]
+          user_email: 41898282+github-actions[bot]@users.noreply.github.com
+          full_commit_message: Build ${{ github.sha }}
+
+      - name: Upload zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinspec-extension
+          path: dist/

@@ -1,0 +1,16 @@
+name: Feature request
+description: Suggest an improvement to pinspec
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What's hard or missing today?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea
+      description: How you'd like it to work.
