@@ -1,54 +1,128 @@
+<div align="center">
+
+<img src="build/icon.svg" width="72" height="72" alt="" />
+
 # pinspec
 
-A Chrome extension that turns a UI change into one image an AI coding agent can act on: the exact element, its current CSS, the target, values snapped to the page's design system, and your comment.
+**Pin a UI change on any page and copy it as one image your coding agent can act on.**
 
-## Install (unpacked)
+[![CI](https://github.com/priyaabhatt/pinspec/actions/workflows/ci.yml/badge.svg)](https://github.com/priyaabhatt/pinspec/actions/workflows/ci.yml)
+[![Build extension](https://github.com/priyaabhatt/pinspec/actions/workflows/release.yml/badge.svg)](https://github.com/priyaabhatt/pinspec/actions/workflows/release.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+</div>
+
+When a designer hands a developer a screenshot, the coding agent has to guess which element is meant, what the target values are, and which design tokens to use. pinspec writes the handoff for the agent instead: the exact element, its current CSS, the target, the values snapped to the codebase's design system, and the designer's comment, all in one PNG on the clipboard.
+
+<p align="center">
+  <img src="docs/images/handoff.png" width="720" alt="A pinspec handoff image: Before and After screenshots of a button, CSS rows such as width 232px to w-88, the comment, and a short instruction footer for the agent." />
+</p>
+
+## Features
+
+- **Works on any page:** production, Vercel previews and localhost. It reads the rendered page; no source code or dev install needed.
+- **Precise selection:** hover to highlight, ↑ and ↓ to move between parent and child, click to pick.
+- **Before and After:** the element is captured automatically; paste the target image with ⌘V.
+- **CSS rows:** tick the properties you want to change and type the new values. They're applied live on the page.
+- **Snapped to the design system:** reads Tailwind v4 and shadcn tokens from the page, so `350px` becomes `w-88` and `#6B7280` becomes `text-muted-foreground`. Mark any row **exact** to keep your value.
+- **Private by design:** no backend, no network calls, nothing stored. The pin is gone once copied.
+
+<p align="center">
+  <img src="docs/images/card.png" width="720" alt="The pinspec annotation card attached to a selected button, showing the Before image, the after-image slot, a comment and three CSS rows." />
+</p>
+
+## Install
+
+### From the prebuilt branch (recommended)
+
+Every merge to `main` builds the extension and publishes it to the [`extension`](https://github.com/priyaabhatt/pinspec/tree/extension) branch, ready to load.
 
 ```sh
+git clone -b extension https://github.com/priyaabhatt/pinspec.git pinspec-extension
+```
+
+1. Open `chrome://extensions` and turn on **Developer mode**.
+2. Click **Load unpacked** and choose the `pinspec-extension` folder.
+3. Pin pinspec from the puzzle-piece menu.
+
+To update, run `git pull` in that folder and click ↻ on pinspec's card in `chrome://extensions`.
+
+### From source
+
+Requires Node 20 or newer.
+
+```sh
+git clone https://github.com/priyaabhatt/pinspec.git
+cd pinspec
 npm install
 npm run build
 ```
 
-In Chrome, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and pick the `dist` folder. Pin the pinspec icon.
+Then load the `dist` folder as above.
 
-After changing code, run `npm run build` again and click reload on the extension card. `npm run dev` rebuilds the content script on save.
+## Usage
 
-## Use
+1. Click the pinspec icon. The toolbar appears and selection starts.
+2. Hover and click the element to change. **↑** selects its parent, **↓** goes back, **Esc** cancels.
+3. Write or dictate what should change. The comment is required.
+4. Optional: press **⌘V** in the card to paste an After image.
+5. Optional: click **{ }**, tick properties, then type their after values.
+6. Click **Copy** (or press **⌘↵**) and paste the image into Codex, Claude Code or Cursor.
 
-1. Click the pinspec icon. The toolbar appears at the bottom of the page (drag it anywhere).
-2. Click ⌖, hover, and click an element. **↑** selects the parent, **↓** goes back down, **Esc** cancels.
-3. Write or dictate the comment (required).
-4. Optional: press ⌘V in the card to paste an after image.
-5. Optional: click **{ }** to add CSS rows. Type an after value; it is applied live and snapped to the page's tokens. Click **exact** on a row to keep the typed value instead.
-6. Click **Copy** (or ⌘↵). The image is on your clipboard; paste it into Codex, Claude Code or Cursor.
+✕ or Esc cancels the pin. Dragging the toolbar moves it anywhere on the page.
 
-⌫ Remove clears only the element and keeps your comment, image and rows. Esc or ✕ discards the pin. Nothing is saved.
+### The copied image
+
+| Section | Contents |
+| --- | --- |
+| Before | The selected element with a little surrounding context, plus its tag, classes and text |
+| After | Your pasted image, or a live render of the CSS edits |
+| CSS | Before → after rows, with the snapped token beside each value |
+| Comment | Your comment, as typed or dictated |
+| Footer | Short instructions telling the agent to change only this element and use existing tokens |
+
+## Permissions
+
+pinspec asks only for `activeTab` and `scripting`. It runs on a tab only after you click its icon, and it never sends data anywhere. Screenshots and the composed image stay in your browser until you paste them.
 
 ## Development
 
-- `npm test` runs the snapping unit tests.
-- `npm run typecheck` runs TypeScript.
-- `dev/index.html` is a small page with a Tailwind v4 + shadcn style token set (`cd dev && python3 -m http.server`).
-- `node build/icons.mjs` regenerates the toolbar icons from `build/icon.svg`.
+```sh
+npm run dev        # rebuild the content script on save
+npm run typecheck
+npm test           # snapping unit tests
+npm run build
+```
 
-### Layout
+After a rebuild, click ↻ on pinspec's card in `chrome://extensions` and reload the page. `dev/index.html` is a test page with a small Tailwind and shadcn token set; serve it with `cd dev && python3 -m http.server`.
 
-| Path | What it does |
+### Project structure
+
+| Path | Purpose |
 | --- | --- |
-| `src/background/index.ts` | Icon click injects or toggles the content script; handles `captureVisibleTab`. |
-| `src/content/index.tsx` | Mounts the UI in a shadow root and keeps page key handlers out. |
-| `src/content/App.tsx` | Pin state: select, card, live edits, copy. |
-| `src/content/Selector.tsx` | Crosshair selection overlay. |
-| `src/content/Card.tsx` | Annotation card, paste routing, CSS rows. |
-| `src/content/CssPicker.tsx` | { } picker of non-default styles and the class list. |
-| `src/content/tokens.ts` | Reads `--spacing`, `--color-*`, `--radius-*`, `--text-*` and semantic tokens from the page. |
-| `src/lib/snap.ts` | Pure snapping logic (tested). |
-| `src/content/compose.ts` | Draws the final PNG. |
-| `build/postcss-shadow-safe.js` | rem → px and `@property` fallbacks so Tailwind works inside a shadow root. |
+| `src/background/index.ts` | Injects or toggles pinspec on icon click; takes screenshots |
+| `src/content/index.tsx` | Mounts the UI in a shadow root, isolated from the page |
+| `src/content/App.tsx` | Pin state: selecting, the card, live edits and copy |
+| `src/content/Selector.tsx` | Element selection overlay |
+| `src/content/Card.tsx` | Annotation card, paste handling and CSS rows |
+| `src/content/CssPicker.tsx` | Property picker with checkboxes and the class list |
+| `src/content/tokens.ts` | Reads design tokens from the page's CSS |
+| `src/lib/snap.ts` | Snapping logic (unit tested) |
+| `src/content/compose.ts` | Draws the final PNG |
+| `build/postcss-shadow-safe.js` | Makes Tailwind's output work inside a shadow root |
 
-### Notes
+Built with React, Tailwind CSS v4, shadcn/ui and Vite.
 
-- Permissions are only `activeTab` and `scripting`: pinspec runs on a tab when you click its icon, with no host permissions and no network calls.
-- Built with a plain Vite setup rather than CRXJS: the content script is one IIFE bundle (required by `executeScript`) and the worker is one ES module.
-- Elements taller than the viewport are cropped to their visible part.
-- Tokens come from same-origin stylesheets; rules in cross-origin stylesheets can't be read.
+### Known limitations
+
+- Elements taller than the viewport are captured up to the visible part.
+- Tokens are read from same-origin stylesheets only; browsers block reading rules from other domains.
+- Chrome doesn't allow extensions on `chrome://` pages or the Chrome Web Store.
+
+## Contributing
+
+`main` only changes through pull requests. Branch from `main`, make sure `npm run typecheck`, `npm test` and `npm run build` pass, and open a PR using the template. Bug reports and ideas are welcome in [Issues](https://github.com/priyaabhatt/pinspec/issues).
+
+## License
+
+[MIT](LICENSE) © 2026 Priya Bhatt

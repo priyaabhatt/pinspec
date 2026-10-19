@@ -1,0 +1,26 @@
+name: Bug report
+description: Something in pinspec doesn't work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: page
+    attributes:
+      label: Page
+      description: The kind of page it happened on (localhost, Vercel preview, a public site). Leave out private URLs.
+  - type: input
+    id: chrome
+    attributes:
+      label: Chrome version
+      description: From chrome://version
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Paste any screenshots or the copied pinspec image.

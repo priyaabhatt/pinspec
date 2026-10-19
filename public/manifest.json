@@ -18,6 +18,13 @@
     "48": "icons/48.png",
     "128": "icons/128.png"
   },
-  "background": { "service_worker": "background.js", "type": "module" },
-  "permissions": ["activeTab", "scripting"]
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "homepage_url": "https://github.com/priyaabhatt/pinspec"
 }

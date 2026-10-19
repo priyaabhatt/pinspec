@@ -3,6 +3,27 @@
   "version": "0.1.0",
   "private": true,
   "description": "Chrome extension that turns a UI change into one image an AI coding agent can act on.",
+  "license": "MIT",
+  "author": "Priya Bhatt",
+  "homepage": "https://github.com/priyaabhatt/pinspec#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/priyaabhatt/pinspec.git"
+  },
+  "bugs": {
+    "url": "https://github.com/priyaabhatt/pinspec/issues"
+  },
+  "keywords": [
+    "chrome-extension",
+    "design-handoff",
+    "ai-agents",
+    "tailwindcss",
+    "design-tokens",
+    "annotation"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "type": "module",
   "scripts": {
     "build": "tsc --noEmit && vite build -c vite.content.config.ts && vite build -c vite.background.config.ts",
