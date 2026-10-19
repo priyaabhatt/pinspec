@@ -8,6 +8,10 @@ pinspec turns a UI change on a rendered web page into one image a coding agent c
 One UI change on one element: the element, a comment, an optional After and optional CSS rows. It exists until it is copied or discarded.
 _Avoid_: annotation, note, ticket
 
+**Draft**:
+A pin's comment, After and CSS rows while it has no element: after Remove, or when selecting is cancelled. The next element picked gets it.
+_Avoid_: unsaved pin, pending pin
+
 **Element**:
 The single DOM element a pin is about, chosen while selecting.
 _Avoid_: node, target, component
@@ -65,7 +69,7 @@ Composing the handoff image, putting it on the clipboard, and discarding the pin
 _Avoid_: export, share
 
 **Discard**:
-Ending a pin without copying it (Esc or ✕). Nothing is kept.
+Ending a pin without copying it (✕, or Esc while the card is open). Nothing is kept. Cancelling selection is not a discard: the draft is kept.
 _Avoid_: cancel, delete
 
 ## Interface

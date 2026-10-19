@@ -1,111 +1,36 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { resolveRow } from '@/lib/cssRow'
-import { captureElement, loadImage } from './capture'
+import { Pin } from '@/lib/pin'
+import { loadImage } from './capture'
 import { Card } from './Card'
-import { compose, toPng } from './compose'
-import { caption } from './describe'
-import { footer, tidy } from './footer'
-import { LiveEdits } from './liveEdits'
+import { pageEnvironment } from './pinEnvironment'
 import { Selector } from './Selector'
-import { classList, readValue } from './styles'
-import { readDesignSystem } from './tokens'
 import { Toolbar } from './Toolbar'
-import type { AfterImage, Row } from './types'
 import { useRect } from './useRect'
 
-type Mode = 'idle' | 'selecting' | 'capturing' | 'card'
-
 export function App({ onClose }: { onClose: () => void }) {
-  const [mode, setMode] = useState<Mode>('selecting')
-  const [el, setEl] = useState<Element | null>(null)
-  const [before, setBefore] = useState<HTMLCanvasElement | null>(null)
-  const [comment, setComment] = useState('')
-  const [after, setAfter] = useState<AfterImage | null>(null)
-  const [rows, setRows] = useState<Row[]>([])
+  // The pin owns its contents and lifecycle; App renders it and holds UI-only
+  // state (the picker, the toast). Activating pinspec starts selecting.
+  const [pin] = useState(() => new Pin(pageEnvironment(), 'selecting'))
+  const { stage, element: el, before, comment, after, rows, resolved, designSystem, busy } = useSyncExternalStore(pin.subscribe, pin.get)
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<{ text: string; tone: 'ok' | 'error' } | null>(null)
-  const nextId = useRef(1)
-  const edits = useRef(new LiveEdits())
-  const rect = useRect(mode === 'card' ? el : null)
-  // One snapshot of the page's design system per selected element.
-  const ds = useMemo(() => readDesignSystem(), [el])
-  const beforeUrl = useMemo(() => before?.toDataURL('image/png') ?? '', [before])
+  const rect = useRect(stage === 'card' ? el : null)
+  const beforeUrl = useMemo(() => (before instanceof HTMLCanvasElement ? before.toDataURL('image/png') : ''), [before])
 
   const flash = useCallback((text: string, tone: 'ok' | 'error' = 'ok') => {
     setToast({ text, tone })
     window.setTimeout(() => setToast((t) => (t?.text === text ? null : t)), tone === 'ok' ? 1600 : 4000)
   }, [])
 
-  // Every CSS row resolved once: the live preview, the card and the handoff
-  // image all read from this.
-  const resolved = useMemo(() => {
-    const classes = el ? classList(el) : []
-    const isValid = (prop: string, value: string) => CSS.supports(prop, value)
-    return new Map(rows.map((r) => [r.id, resolveRow(r, ds, classes, isValid)]))
-  }, [rows, ds, el])
-
-  // Live preview: typed after values are applied to the page as you type.
-  const applied = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const r of rows) {
-      const preview = resolved.get(r.id)?.preview
-      if (preview) m.set(r.prop, preview)
-    }
-    return m
-  }, [rows, resolved])
-
-  useEffect(() => {
-    edits.current.sync(mode === 'card' || mode === 'capturing' ? el : null, applied)
-  }, [el, mode, applied])
-
-  const clearElement = () => {
-    edits.current.restoreAll()
-    setEl(null)
-    setBefore(null)
-  }
-
-  /** Copy, Esc or ✕ end the pin. Nothing survives. */
   const discard = useCallback(() => {
-    edits.current.restoreAll()
-    if (after) URL.revokeObjectURL(after.url)
-    setEl(null)
-    setBefore(null)
-    setComment('')
-    setAfter(null)
-    setRows([])
     setPickerOpen(false)
-    setMode('idle')
-  }, [after])
+    pin.discard()
+  }, [pin])
 
-  const startSelecting = () => {
-    if (mode === 'selecting') {
-      setMode(el ? 'card' : 'idle')
-      return
-    }
-    clearElement()
-    setPickerOpen(false)
-    setMode('selecting')
-  }
-
-  const pick = async (target: Element) => {
-    setMode('capturing')
-    try {
-      const shot = await captureElement(target)
-      setEl(target)
-      setBefore(shot)
-      setRows((rs) => rs.map((r) => ({ ...r, before: readValue(target, r.prop) })))
-      setMode('card')
-    } catch (err) {
-      flash(`Couldn't capture: ${(err as Error).message}`, 'error')
-      setMode('selecting')
-    }
-  }
-
-  // Esc discards the pin (or closes the property picker first).
+  // Esc discards the pin while the card is open (or closes the picker first).
   useEffect(() => {
-    if (mode !== 'card') return
+    if (stage !== 'card') return
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || pickerOpen) return
       e.preventDefault()
@@ -114,60 +39,40 @@ export function App({ onClose }: { onClose: () => void }) {
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [mode, pickerOpen, discard])
+  }, [stage, pickerOpen, discard])
+
+  const pick = async (target: Element) => {
+    const outcome = await pin.pick(target)
+    if (!outcome.ok) flash(outcome.error, 'error')
+  }
+
+  const toggleSelecting = () => {
+    setPickerOpen(false)
+    pin.toggleSelecting()
+  }
 
   const setAfterFile = async (file: File) => {
     const url = URL.createObjectURL(file)
     try {
-      const img = await loadImage(url)
-      if (after) URL.revokeObjectURL(after.url)
-      setAfter({ url, img })
+      pin.setAfter({ url, img: await loadImage(url) })
     } catch {
       URL.revokeObjectURL(url)
       flash("That image couldn't be read", 'error')
     }
   }
 
-  const copy = () => {
-    if (!el || !before || !comment.trim() || busy) return
-    setBusy(true)
-    const cRows = rows.flatMap((r) => resolved.get(r.id)?.handoff ?? [])
-    const png = (async () => {
-      let afterImg: ComposeRowSource | null = after?.img ?? null
-      // No pasted after: the live preview, captured, becomes the After.
-      if (!afterImg && cRows.length) afterImg = await captureElement(el)
-      const canvas = compose({
-        before,
-        after: afterImg,
-        caption: caption(el),
-        afterCaption: after ? 'Pasted target' : cRows.length ? 'Live preview of the CSS below' : '',
-        rows: cRows,
-        comment: tidy(comment),
-        footer: footer({
-          hasSystem: ds.found,
-          hasRows: cRows.length > 0,
-          hasExact: rows.some((r) => r.exact && resolved.get(r.id)?.handoff),
-          hasPastedAfter: !!after,
-        }),
-      })
-      return toPng(canvas)
-    })()
-    // Handing the clipboard a promise keeps the click's user activation alive
-    // across the async capture.
-    navigator.clipboard
-      .write([new ClipboardItem({ 'image/png': png })])
-      .then(() => {
-        discard()
-        flash('Copied. Paste it into your agent')
-      })
-      .catch((err) => flash(`Couldn't copy: ${err?.message ?? err}`, 'error'))
-      .finally(() => setBusy(false))
+  const copy = async () => {
+    const outcome = await pin.copy()
+    if (outcome.ok) {
+      setPickerOpen(false)
+      flash('Copied. Paste it into your agent')
+    } else flash(outcome.error, 'error')
   }
 
   return (
     <TooltipProvider delayDuration={400}>
-      {mode === 'selecting' && <Selector onPick={pick} onCancel={discard} />}
-      {mode === 'card' && el && rect && (
+      {stage === 'selecting' && <Selector onPick={pick} onCancel={() => pin.cancelSelecting()} />}
+      {stage === 'card' && el && rect && designSystem && (
         <>
           <div
             className="pointer-events-none fixed z-20 rounded-[2px] outline-2 outline-highlight"
@@ -177,37 +82,30 @@ export function App({ onClose }: { onClose: () => void }) {
             el={el}
             beforeUrl={beforeUrl}
             rect={rect}
-            ds={ds}
+            ds={designSystem}
             comment={comment}
-            onComment={setComment}
+            onComment={(c) => pin.setComment(c)}
             after={after}
             onAfterFile={setAfterFile}
-            onClearAfter={() => {
-              if (after) URL.revokeObjectURL(after.url)
-              setAfter(null)
-            }}
+            onClearAfter={() => pin.setAfter(null)}
             rows={rows}
             resolved={resolved}
-            onAddRow={(prop) => {
-              const id = nextId.current++
-              setRows((rs) => [...rs, { id, prop, before: readValue(el, prop), after: '', exact: false }])
-              return id
-            }}
-            onRow={(id, patch) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)))}
-            onRemoveRow={(id) => setRows((rs) => rs.filter((r) => r.id !== id))}
+            onAddRow={(prop) => pin.addRow(prop)}
+            onRow={(id, patch) => pin.updateRow(id, patch)}
+            onRemoveRow={(id) => pin.removeRow(id)}
             pickerOpen={pickerOpen}
             onPickerOpen={setPickerOpen}
             busy={busy}
-            onRemove={startSelecting}
+            onRemove={toggleSelecting}
             onCancel={discard}
             onCopy={copy}
           />
         </>
       )}
       <Toolbar
-        selecting={mode === 'selecting'}
+        selecting={stage === 'selecting'}
         toast={toast}
-        onSelect={startSelecting}
+        onSelect={toggleSelecting}
         onClose={() => {
           discard()
           onClose()
@@ -216,5 +114,3 @@ export function App({ onClose }: { onClose: () => void }) {
     </TooltipProvider>
   )
 }
-
-type ComposeRowSource = HTMLImageElement | HTMLCanvasElement

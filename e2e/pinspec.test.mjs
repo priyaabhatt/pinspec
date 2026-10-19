@@ -186,6 +186,19 @@ describe('pin flow', () => {
     await page.close()
   })
 
+  test('cancelling selection keeps the draft for the next element', async () => {
+    const { page, ui } = await open('/')
+    await pick(page, ui, 'button.btn', 0.25)
+    await page.keyboard.type('keep me')
+    await ui('button[aria-label="Select an element"]').click() // Remove: back to selecting
+    await key(page, 'Escape') // cancel selecting
+    assert.equal(await ui('textarea').count(), 0)
+    await ui('button[aria-label="Select an element"]').click()
+    await pick(page, ui, 'button.btn-ghost')
+    assert.equal(await ui('textarea').inputValue(), 'keep me')
+    await page.close()
+  })
+
   test('copy stays disabled until there is a comment', async () => {
     const { page, ui } = await open('/')
     await pick(page, ui, 'button.btn', 0.25)

@@ -63,13 +63,13 @@ Then load the `dist` folder as above.
 ## Usage
 
 1. Click the pinspec icon or press **⌥⇧P** (**Alt+Shift+P** on Windows and Linux). The toolbar appears and selection starts. The same shortcut turns pinspec off; change it at `chrome://extensions/shortcuts`.
-2. Hover and click the element to change. The label shows where you are (`div.card › button.btn`). **↑** selects the parent, **↓** steps back down or into the child under the pointer, **Esc** cancels.
+2. Hover and click the element to change. The label shows where you are (`div.card › button.btn`). **↑** selects the parent, **↓** steps back down or into the child under the pointer, **Esc** cancels selecting.
 3. Write or dictate what should change. The comment is required.
 4. Optional: press **⌘V** in the card to paste an After image.
 5. Optional: click **{ }**, tick properties, then type their after values.
 6. Click **Copy** (or press **⌘↵**) and paste the image into Codex, Claude Code or Cursor.
 
-✕ or Esc cancels the pin. Dragging the toolbar moves it anywhere on the page.
+✕, or Esc while the card is open, discards the pin. Pressing the pointer button in the toolbar lets go of the element but keeps your comment, After and CSS rows (the draft) for the next element you pick. Dragging the toolbar moves it anywhere on the page.
 
 ### The copied image
 
