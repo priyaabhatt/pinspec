@@ -5,14 +5,16 @@
 // 2. @property -> plain declarations. @property is ignored inside shadow roots,
 //    so Tailwind's --tw-* variables would lose their initial values (rings,
 //    shadows and transforms break). They are non-inheriting, so declaring the
-//    initial value on every element is equivalent.
+//    initial value on every element is equivalent. The declarations go in the
+//    first cascade layer: unlayered, they would beat every utility (which
+//    lives in @layer utilities) and reset shadow-*, ring-* and translate-*.
 
 const REM = /(-?\d*\.?\d+)rem\b/g
 
 export default function shadowSafe() {
   return {
     postcssPlugin: 'pinspec-shadow-safe',
-    Once(root, { rule, decl }) {
+    Once(root, { atRule, rule, decl }) {
       const initials = []
       root.walkAtRules('property', (at) => {
         let initial
@@ -23,7 +25,7 @@ export default function shadowSafe() {
       if (initials.length) {
         const r = rule({ selector: ':host, *, ::before, ::after, ::backdrop' })
         r.append(initials)
-        root.prepend(r)
+        root.prepend(atRule({ name: 'layer', params: 'properties', nodes: [r] }))
       }
       root.walkDecls((d) => {
         if (d.value.includes('rem')) {

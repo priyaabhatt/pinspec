@@ -10,7 +10,7 @@ What pinspec's own toolbar, card and picker are built from. (Not to be confused 
 | Portal container (keeps Radix popups inside the shadow root) | pinspec | `src/components/ui/portal.tsx` |
 | `cn()` class merging | shadcn/ui, using `clsx` and `tailwind-merge` | `src/lib/utils.ts` |
 | Icons: MousePointer2, X, Braces, Copy, Check, ImagePlus | [Lucide](https://lucide.dev) | imported where used |
-| Theme colours and radii (light and dark) | shadcn/ui's neutral theme, declared on `:host` | `src/content/styles.css` |
+| Theme colours, radii and shadow | shadcn/ui's neutral light theme, plus dark `toolbar` colours and a `shadow-float` for floating surfaces, declared on `:host` | `src/content/styles.css` |
 | Styling | Tailwind CSS v4, compiled to px for the shadow root | see [ADR 0003](adr/0003-ui-in-a-shadow-root-with-px-tailwind.md) |
 
 When adding a part, take it from shadcn/ui first, point any portal at `usePortalContainer()`, and add it here.

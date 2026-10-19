@@ -123,7 +123,7 @@ export function Card(p: Props) {
           p.onRemove()
         }
       }}
-      className="pointer-events-auto fixed z-30 flex flex-col rounded-xl border bg-card text-card-foreground shadow-xl outline-none"
+      className="pointer-events-auto fixed z-30 flex flex-col rounded-xl border bg-card text-card-foreground shadow-float outline-none"
       style={{ left: pos.left, top: pos.top, width: CARD_W }}
     >
       <div className="flex flex-col gap-2 p-3">
