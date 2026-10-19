@@ -170,6 +170,22 @@ describe('pin flow', () => {
     await page.close()
   })
 
+  test('a typo is flagged in the card and kept out of the live preview', async () => {
+    const { page, ui } = await open('/')
+    await pick(page, ui, 'button.btn', 0.25)
+    await page.keyboard.type('wider')
+    await addRow(page, ui, 'width', '350pz')
+    assert.equal(await ui('[role=alert]').textContent(), 'Not a valid width')
+    assert.equal(await page.locator('button.btn').evaluate((e) => getComputedStyle(e).width), '232px')
+    await page.keyboard.press('Backspace')
+    await page.keyboard.press('Backspace')
+    await page.keyboard.type('px')
+    await page.waitForTimeout(100)
+    assert.equal(await ui('[role=alert]').count(), 0)
+    assert.equal(await page.locator('button.btn').evaluate((e) => getComputedStyle(e).width), '352px')
+    await page.close()
+  })
+
   test('copy stays disabled until there is a comment', async () => {
     const { page, ui } = await open('/')
     await pick(page, ui, 'button.btn', 0.25)

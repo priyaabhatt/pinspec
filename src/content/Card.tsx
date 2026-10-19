@@ -2,10 +2,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Copy, ImagePlus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
+import type { ResolvedRow } from '@/lib/cssRow'
 import type { DesignSystem } from '@/lib/designSystem'
 import { cn } from '@/lib/utils'
 import { CssPicker } from './CssPicker'
-import { classList } from './styles'
 import type { AfterImage, Row } from './types'
 
 interface Props {
@@ -20,6 +20,7 @@ interface Props {
   onAfterFile: (file: File) => void
   onClearAfter: () => void
   rows: Row[]
+  resolved: Map<number, ResolvedRow>
   onAddRow: (prop: string) => number
   onRow: (id: number, patch: Partial<Row>) => void
   onRemoveRow: (id: number) => void
@@ -135,8 +136,7 @@ export function Card(p: Props) {
                 <CssRow
                   key={r.id}
                   row={r}
-                  ds={p.ds}
-                  classes={classList(p.el)}
+                  view={p.resolved.get(r.id)!}
                   focus={focusRow === r.id}
                   onFocused={() => setFocusRow(null)}
                   onChange={(patch) => p.onRow(r.id, patch)}
@@ -233,16 +233,14 @@ function AfterSlot({ after, onClear }: { after: AfterImage | null; onClear: () =
 
 function CssRow({
   row,
-  ds,
-  classes,
+  view,
   focus,
   onFocused,
   onChange,
   onRemove,
 }: {
   row: Row
-  ds: DesignSystem
-  classes: string[]
+  view: ResolvedRow
   focus: boolean
   onFocused: () => void
   onChange: (patch: Partial<Row>) => void
@@ -254,8 +252,6 @@ function CssRow({
     inputRef.current?.focus({ preventScroll: true })
     onFocused()
   }, [focus, onFocused])
-  const before = ds.nameBefore(row.prop, row.before, classes)
-  const snap = ds.snap(row.prop, row.after)
   return (
     <div className="font-mono text-xs">
       <div className="flex items-center gap-2">
@@ -263,7 +259,7 @@ function CssRow({
           {row.prop}
         </span>
         <span className="min-w-0 flex-1 truncate text-muted-foreground" title={row.before}>
-          {before}
+          {view.before}
         </span>
         <span className="text-muted-foreground">→</span>
         <input
@@ -272,16 +268,25 @@ function CssRow({
           onChange={(e) => onChange({ after: e.target.value })}
           placeholder="after"
           spellCheck={false}
-          className="h-6 w-[96px] shrink-0 rounded border bg-background px-1.5 outline-none focus:ring-2 focus:ring-highlight/40"
+          aria-invalid={view.problem ? true : undefined}
+          className={cn(
+            'h-6 w-[96px] shrink-0 rounded border bg-background px-1.5 outline-none focus:ring-2 focus:ring-highlight/40',
+            view.problem && 'border-destructive focus:ring-destructive/40',
+          )}
         />
         <button type="button" aria-label={`Remove ${row.prop}`} onClick={onRemove} className="text-muted-foreground hover:text-foreground">
           <X className="size-3.5" />
         </button>
       </div>
-      {snap && (
+      {view.problem && (
+        <div role="alert" className="mt-0.5 pr-[22px] text-right font-sans text-[11px] text-destructive">
+          {view.problem}
+        </div>
+      )}
+      {view.hint && (
         <div className="mt-0.5 flex items-center justify-end gap-1.5 pr-[22px] text-[11px]">
-          <span className={cn('truncate', row.exact ? 'text-muted-foreground line-through' : 'text-highlight')}>
-            {snap.exact ? snap.token : `${snap.token} (${snap.value})`}
+          <span className={cn('truncate', view.hint.struck ? 'text-muted-foreground line-through' : 'text-highlight')}>
+            {view.hint.text}
           </span>
           <button
             type="button"

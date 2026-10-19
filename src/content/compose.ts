@@ -1,25 +1,15 @@
 // Draws the final handoff image: Before | After, CSS rows, comment, footer.
 
-export interface ComposeRow {
-  prop: string
-  before: string
-  /** What to implement: a token/class when snapped, else the raw value. */
-  after: string
-  /** Secondary text: the resolved value, or "exact". */
-  afterNote?: string
-  /** Swatch colours for colour rows. */
-  beforeSwatch?: string
-  afterSwatch?: string
-}
+import type { HandoffRow } from '@/lib/cssRow'
 
 export interface ComposeInput {
   before: CanvasImageSource & { width: number; height: number }
   after: (CanvasImageSource & { width: number; height: number }) | null
   /** Short identification of the element: tag, classes, text. */
   caption: string
-  /** Where the After came from, e.g. "Live render of the CSS below". */
+  /** Where the After came from, e.g. "Live preview of the CSS below". */
   afterCaption: string
-  rows: ComposeRow[]
+  rows: HandoffRow[]
   comment: string
   footer: string[]
 }

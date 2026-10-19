@@ -21,8 +21,12 @@ A screenshot of the element as it is on the page, with a little surrounding cont
 _Avoid_: original, current screenshot
 
 **After**:
-What the element should look like: either a pasted image, or a live render of the CSS rows.
+What the element should look like: either a pasted image, or the live preview captured as an image.
 _Avoid_: target image, mockup
+
+**Live preview**:
+The CSS rows' after values applied to the page as they're typed, so the element shows the change before it's copied.
+_Avoid_: live render, live edit
 
 **CSS row**:
 One property's change, from its value on the page (before) to the value the designer wants (after).
