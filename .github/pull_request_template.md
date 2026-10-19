@@ -1,8 +1,17 @@
-## What changed
+## Summary
 
-<!-- One or two sentences on the change and why. -->
+<!-- The smallest view that makes the change clear: a diff sketch, call tree, file tree or Mermaid diagram, with a sentence or two. Use the terms in GLOSSARY.md. -->
 
-## How it was tested
+Closes #
+
+## Evidence
+
+<!-- Before and after. Screenshots for visual changes; otherwise test output. -->
+
+- **Before:**
+  **After:**
+
+Checks:
 
 - [ ] `npm run typecheck`
 - [ ] `npm test`
@@ -10,6 +19,8 @@
 - [ ] `npm run build`
 - [ ] Loaded `dist/` in Chrome and tried the change on a real page
 
-## Screenshots
+## Merge Danger
 
-<!-- For UI changes: the card, toolbar or copied image, before and after. -->
+**Door:** <!-- one-way (hard to undo) or two-way (easy to roll back) -->
+
+**Blast Radius:** <!-- one word, e.g. none, card, selection, capture, copy, store -->

@@ -8,12 +8,17 @@ Agent skills for working on pinspec. Claude Code loads them from this folder; ea
 | [`codebase-design`](codebase-design/SKILL.md) | Design or restructure modules with a shared vocabulary (deep modules, seams, adapters) |
 | [`diagnosing-bugs`](diagnosing-bugs/SKILL.md) | Debug a hard bug or slowdown: build a feedback loop that goes red first, then hypothesise |
 | [`domain-modeling`](domain-modeling/SKILL.md) | Keep [`GLOSSARY.md`](../../GLOSSARY.md) and the decision records in [`docs/adr/`](../../docs/adr/) sharp |
+| [`pr`](pr/SKILL.md) | Write a PR body that's fast to review: a diagram or diff sketch, before/after evidence, and how risky the merge is |
+| [`improve-codebase-architecture`](improve-codebase-architecture/SKILL.md) | Type `/improve-codebase-architecture` to scan for refactors that would make modules deeper, as a visual report, then talk one through |
+| [`retro`](retro/SKILL.md) | Type `/retro` after a session to find what would make the next one go better (checks, docs, navigation) |
+| [`writing-for-agents`](writing-for-agents/SKILL.md) | Write skills, `CLAUDE.md` or other documents agents read. Used by `retro` |
+| [`grilling`](grilling/SKILL.md) | Stress-test a plan with rounds of questions. Used by `improve-codebase-architecture` |
 
 How they map onto this repo is in [`CLAUDE.md`](../../CLAUDE.md) under "Skills".
 
 ## Source
 
-Copied unchanged from [mattpocock/skills](https://github.com/mattpocock/skills/tree/49dd158/skills/engineering) at commit `49dd158`, under the MIT License:
+Copied unchanged from [mattpocock/skills](https://github.com/mattpocock/skills/tree/49dd158/skills) at commit `49dd158` (`engineering/` and, for `writing-for-agents` and `grilling`, `productivity/`), under the MIT License. The `pr` skill's Summary section credits Dex Horthy's `show-me` skill; see [`pr/CREDITS.md`](pr/CREDITS.md).
 
 > MIT License
 >

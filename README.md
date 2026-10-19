@@ -128,7 +128,7 @@ Every merge to `main` builds the extension, publishes it to the `extension` bran
 
 `main` only changes through pull requests. Branch from `main`, make sure `npm run typecheck`, `npm test`, `npm run test:e2e` and `npm run build` pass, and open a PR using the template. Bug reports and ideas are welcome in [Issues](https://github.com/priyaabhatt/pinspec/issues).
 
-The project's vocabulary is in [`GLOSSARY.md`](GLOSSARY.md) and its key decisions in [`docs/adr/`](docs/adr/). Coding agents get project skills for code review, module design, debugging and domain modelling from [`.claude/skills/`](.claude/skills/README.md).
+The project's vocabulary is in [`GLOSSARY.md`](GLOSSARY.md) and its key decisions in [`docs/adr/`](docs/adr/). Coding agents get project skills for code review, PR writing, module design, architecture reviews, debugging, domain modelling and retrospectives from [`.claude/skills/`](.claude/skills/README.md).
 
 ## License
 
