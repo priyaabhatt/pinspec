@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
+/** Matches the manifest's _execute_action command; users can rebind it in chrome://extensions/shortcuts. */
+const SHORTCUT = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌥⇧P' : 'Alt+Shift+P'
+
 interface Props {
   selecting: boolean
   toast: { text: string; tone: 'ok' | 'error' } | null
@@ -55,7 +58,7 @@ export function Toolbar({ selecting, toast, onSelect, onClose }: Props) {
           <MousePointer2 />
         </Button>
       </Tooltip>
-      <Tooltip label="Turn off pinspec">
+      <Tooltip label="Turn off pinspec" shortcut={SHORTCUT}>
         <Button variant="ghost" size="icon" aria-label="Turn off pinspec" onClick={onClose}>
           <X />
         </Button>

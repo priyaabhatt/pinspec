@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- ⌥⇧P (Alt+Shift+P) turns pinspec on and off (#3).
+
 ## 0.1.0 (unreleased)
 
 First version.
