@@ -7,6 +7,7 @@ import type { DesignSystem } from '@/lib/designSystem'
 import { cn } from '@/lib/utils'
 import { CssPicker } from './CssPicker'
 import type { AfterImage } from '@/lib/pin'
+import { onPinspecPaste } from './pasteRouter'
 
 interface Props {
   el: Element
@@ -68,34 +69,44 @@ export function Card(p: Props) {
 
   const pos = place(p.rect, height)
 
-  // ⌘V anywhere in the card: images go to the after slot, even while the
-  // comment has focus; text goes into the comment.
-  const onPaste = (e: React.ClipboardEvent) => {
-    const items = Array.from(e.clipboardData.items)
-    const image = items.find((i) => i.kind === 'file' && i.type.startsWith('image/'))
-    if (image) {
-      const file = image.getAsFile()
-      if (file) {
+  // ⌘V anywhere in pinspec while the card is open (the card, the { } picker,
+  // the toolbar): images go to the after slot, even while the comment has
+  // focus; text goes where the cursor is, or into the comment. The paste
+  // router delivers it here before the page's own paste handlers.
+  const latest = useRef(p)
+  latest.current = p
+  useEffect(
+    () =>
+      onPinspecPaste((e, target) => {
+        const p = latest.current
+        const data = e.clipboardData
+        if (!data) return
+        const image = Array.from(data.items).find((i) => i.kind === 'file' && i.type.startsWith('image/'))
+        const file = image?.getAsFile()
+        if (file) {
+          e.preventDefault()
+          p.onAfterFile(file)
+          return
+        }
+        const text = data.getData('text/plain')
+        if (!text) return
+        if (target.closest('input, textarea')) {
+          // A page handler that ran first may still have cancelled the default
+          // insertion; insert the text ourselves then.
+          if (e.defaultPrevented) document.execCommand('insertText', false, text)
+          return
+        }
         e.preventDefault()
-        p.onAfterFile(file)
-      }
-      return
-    }
-    const target = e.target as HTMLElement
-    if (target.closest('input, textarea')) return
-    const text = e.clipboardData.getData('text/plain')
-    if (text) {
-      e.preventDefault()
-      p.onComment(p.comment ? `${p.comment} ${text}` : text)
-      commentRef.current?.focus()
-    }
-  }
+        p.onComment(p.comment ? `${p.comment} ${text}` : text)
+        commentRef.current?.focus()
+      }),
+    [],
+  )
 
   return (
     <div
       ref={ref}
       tabIndex={-1}
-      onPaste={onPaste}
       onMouseDown={(e) => {
         // Keep focus inside the card so ⌘V lands here.
         if (!(e.target as Element).closest('input, textarea, button')) {

@@ -58,8 +58,9 @@ after(async () => {
   if (tmp) rmSync(tmp, { recursive: true, force: true })
 })
 
-async function open(path = '/') {
+async function open(path = '/', init) {
   const page = await ctx.newPage()
+  if (init) await page.addInitScript(init)
   const errors = []
   page.on('pageerror', (e) => errors.push(e.message))
   page.on('dialog', (d) => {
@@ -205,6 +206,68 @@ describe('pin flow', () => {
     assert.equal(await ui('button[aria-label="Copy"]').isDisabled(), true)
     await page.keyboard.type('x')
     assert.equal(await ui('button[aria-label="Copy"]').isDisabled(), false)
+    await page.close()
+  })
+})
+
+describe('pasting', () => {
+  // Dictation apps paste with ⌘V. Many web apps cancel or swallow every paste
+  // for their own editor; pinspec must still get it. Each script runs before
+  // pinspec is injected, as a page's own handlers would.
+  const pageHandlers = {
+    'a page that cancels pastes': `document.addEventListener('paste', (e) => e.preventDefault(), true)`,
+    'a page that swallows pastes': `document.addEventListener('paste', (e) => { e.preventDefault(); e.stopImmediatePropagation() }, true)`,
+    'a page that cancels pastes on the window first': `window.addEventListener('paste', (e) => e.preventDefault(), true)`,
+  }
+
+  /** Wait until `fn` returns `want`, failing with the last value after 3s. */
+  async function until(fn, want) {
+    let got
+    for (const end = Date.now() + 3000; Date.now() < end; await new Promise((r) => setTimeout(r, 50))) {
+      got = await fn()
+      if (got === want) return
+    }
+    assert.equal(got, want)
+  }
+
+  async function copyImage(page) {
+    await page.evaluate(async () => {
+      const c = document.createElement('canvas')
+      c.width = c.height = 8
+      const png = await new Promise((r) => c.toBlob(r, 'image/png'))
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })])
+    })
+  }
+
+  for (const [name, script] of Object.entries(pageHandlers)) {
+    test(`dictated text lands in the comment on ${name}`, async () => {
+      const { page, ui } = await open('/', script)
+      await pick(page, ui, 'button.btn', 0.25)
+      await page.evaluate(() => navigator.clipboard.writeText('make it wider'))
+      await page.keyboard.press('ControlOrMeta+V')
+      await until(() => ui('textarea').inputValue(), 'make it wider')
+      await page.close()
+    })
+  }
+
+  test('a pasted image goes to the After slot on a page that swallows pastes', async () => {
+    const { page, ui } = await open('/', pageHandlers['a page that swallows pastes'])
+    await pick(page, ui, 'button.btn', 0.25)
+    await copyImage(page)
+    await page.keyboard.press('ControlOrMeta+V')
+    await ui('img[alt=After]').waitFor({ timeout: 5000 })
+    assert.equal(await ui('textarea').inputValue(), '')
+    await page.close()
+  })
+
+  test('a pasted image goes to the After slot while the { } picker is open', async () => {
+    const { page, ui } = await open('/', pageHandlers['a page that swallows pastes'])
+    await pick(page, ui, 'button.btn', 0.25)
+    await ui('button[aria-label="Add CSS property"]').click()
+    await page.waitForTimeout(200)
+    await copyImage(page)
+    await page.keyboard.press('ControlOrMeta+V')
+    await ui('img[alt=After]').waitFor({ timeout: 5000 })
     await page.close()
   })
 })
