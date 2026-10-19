@@ -43,7 +43,7 @@ export function Toolbar({ selecting, toast, onSelect, onClose }: Props) {
     <div
       ref={ref}
       onPointerDown={onPointerDown}
-      className="pointer-events-auto fixed z-30 flex cursor-grab items-center gap-1 rounded-xl border bg-background p-1.5 shadow-lg active:cursor-grabbing"
+      className="pointer-events-auto fixed z-30 flex cursor-grab items-center gap-1 rounded-xl border border-toolbar bg-toolbar p-1.5 text-toolbar-foreground shadow-float active:cursor-grabbing"
       style={pos ? { left: pos.x, top: pos.y } : { left: '50%', bottom: 24, transform: 'translateX(-50%)' }}
     >
       <Tooltip label={selecting ? 'Selecting… click an element' : 'Select an element'} shortcut={selecting ? 'Esc to cancel' : undefined}>
@@ -53,13 +53,13 @@ export function Toolbar({ selecting, toast, onSelect, onClose }: Props) {
           aria-label="Select an element"
           aria-pressed={selecting}
           onClick={onSelect}
-          className={cn(selecting && 'bg-highlight text-white hover:bg-highlight hover:text-white')}
+          className={cn('hover:bg-toolbar-accent hover:text-toolbar-foreground', selecting && 'bg-highlight text-white hover:bg-highlight hover:text-white')}
         >
           <MousePointer2 />
         </Button>
       </Tooltip>
       <Tooltip label="Turn off pinspec" shortcut={SHORTCUT}>
-        <Button variant="ghost" size="icon" aria-label="Turn off pinspec" onClick={onClose}>
+        <Button variant="ghost" size="icon" aria-label="Turn off pinspec" onClick={onClose} className="hover:bg-toolbar-accent hover:text-toolbar-foreground">
           <X />
         </Button>
       </Tooltip>

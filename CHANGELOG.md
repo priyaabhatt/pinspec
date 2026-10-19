@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- The toolbar, card and picker are always light, matching the copied image, instead of following the system's dark mode.
+- The card and picker are always light, matching the copied image, instead of following the system's dark mode. The toolbar is dark, and both float on a stronger shadow so they stand out on white pages.
 - In the card, the arrow sits centred between the before value and the after box, and the card's ✕ button is gone. Esc while the card is open still discards the pin.
 
 ## 0.1.0 (2026-10-19)
