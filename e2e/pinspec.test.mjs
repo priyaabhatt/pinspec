@@ -127,6 +127,13 @@ describe('pin flow', () => {
 
     // Tailwind and shadcn tokens read from the page.
     assert.deepEqual(await ui('.text-highlight').allTextContents(), ['w-88 (352px)', 'rounded-lg', 'text-muted-foreground'])
+    // Before values are written the way the image writes them: the element's
+    // class for its radius, the token class for its colour, raw for a width
+    // no class sets.
+    const befores = await ui('input[placeholder=after]').evaluateAll((inputs) =>
+      inputs.map((i) => i.parentElement.querySelectorAll('span')[1].textContent),
+    )
+    assert.deepEqual(befores, ['232px', 'rounded-sm', 'text-background'])
     // Live preview applies the snapped value.
     assert.equal(await page.locator('button.btn').evaluate((e) => getComputedStyle(e).width), '352px')
 
@@ -156,7 +163,8 @@ describe('pin flow', () => {
     await page.waitForTimeout(300)
     const entries = await ui('[role=checkbox]').allTextContents()
     assert.ok(entries.includes('width232px'))
-    assert.ok(entries.includes('background-color--color-primary'), 'colour shown as its token')
+    assert.ok(entries.includes('background-color' + 'bg-primary'), 'colour shown as its class, same as the image')
+    assert.ok(entries.includes('border-radius' + 'rounded-sm'), "the element's own class names its radius")
     assert.ok(!entries.some((e) => e.startsWith('outline-color')), 'outline colour hidden without an outline')
     assert.deepEqual(await ui('.rounded.bg-muted').allTextContents(), ['btn', 'inline-flex', 'items-center', 'rounded-sm'])
     await page.close()

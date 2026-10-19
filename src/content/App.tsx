@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { colorClass, hasSystem, hex, isColorProp, snapValue } from '@/lib/snap'
+import { isColorProp } from '@/lib/snap'
 import { captureElement, loadImage } from './capture'
 import { Card } from './Card'
 import { compose, toPng, type ComposeRow } from './compose'
 import { caption } from './describe'
-import { parseColor, remPx } from './env'
 import { footer, tidy } from './footer'
 import { LiveEdits } from './liveEdits'
 import { Selector } from './Selector'
-import { describeValue, readValue } from './styles'
+import { classList, readValue } from './styles'
 import { readDesignSystem } from './tokens'
 import { Toolbar } from './Toolbar'
 import type { AfterImage, Row } from './types'
@@ -30,6 +29,7 @@ export function App({ onClose }: { onClose: () => void }) {
   const nextId = useRef(1)
   const edits = useRef(new LiveEdits())
   const rect = useRect(mode === 'card' ? el : null)
+  // One snapshot of the page's design system per selected element.
   const ds = useMemo(() => readDesignSystem(), [el])
   const beforeUrl = useMemo(() => before?.toDataURL('image/png') ?? '', [before])
 
@@ -44,7 +44,7 @@ export function App({ onClose }: { onClose: () => void }) {
     for (const r of rows) {
       const v = r.after.trim()
       if (!v) continue
-      const snap = r.exact ? null : snapValue(r.prop, v, ds, parseColor, remPx())
+      const snap = r.exact ? null : ds.snap(r.prop, v)
       const value = snap ? snap.value : v
       if (CSS.supports(r.prop, value)) m.set(r.prop, value)
     }
@@ -128,11 +128,8 @@ export function App({ onClose }: { onClose: () => void }) {
       .filter((r) => r.after.trim())
       .map((r) => {
         const v = r.after.trim()
-        const b = describeValue(r.prop, r.before, ds)
         const color = isColorProp(r.prop)
-        const snap = r.exact ? null : snapValue(r.prop, v, ds, parseColor, remPx())
-        const afterRgba = color ? parseColor(snap?.value ?? v) : null
-        const beforeRgba = color ? parseColor(r.before) : null
+        const snap = r.exact ? null : ds.snap(r.prop, v)
         let afterText = v
         let afterNote: string | undefined
         if (r.exact) afterNote = 'exact'
@@ -143,11 +140,11 @@ export function App({ onClose }: { onClose: () => void }) {
         }
         return {
           prop: r.prop,
-          before: b.token ? colorClass(r.prop, b.token) : b.text,
+          before: ds.nameBefore(r.prop, r.before, el ? classList(el) : []),
           after: afterText,
           afterNote,
-          beforeSwatch: beforeRgba ? hex(beforeRgba) : undefined,
-          afterSwatch: afterRgba ? hex(afterRgba) : undefined,
+          beforeSwatch: color ? (ds.swatch(r.before) ?? undefined) : undefined,
+          afterSwatch: color ? (ds.swatch(snap?.value ?? v) ?? undefined) : undefined,
         }
       })
 
@@ -167,7 +164,7 @@ export function App({ onClose }: { onClose: () => void }) {
         rows: cRows,
         comment: tidy(comment),
         footer: footer({
-          hasSystem: hasSystem(ds),
+          hasSystem: ds.found,
           hasRows: cRows.length > 0,
           hasExact: rows.some((r) => r.exact && r.after.trim()),
           hasPastedAfter: !!after,

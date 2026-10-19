@@ -2,11 +2,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Copy, ImagePlus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
-import { snapValue, type DesignSystem } from '@/lib/snap'
+import type { DesignSystem } from '@/lib/designSystem'
 import { cn } from '@/lib/utils'
 import { CssPicker } from './CssPicker'
-import { parseColor, remPx } from './env'
-import { describeValue } from './styles'
+import { classList } from './styles'
 import type { AfterImage, Row } from './types'
 
 interface Props {
@@ -137,6 +136,7 @@ export function Card(p: Props) {
                   key={r.id}
                   row={r}
                   ds={p.ds}
+                  classes={classList(p.el)}
                   focus={focusRow === r.id}
                   onFocused={() => setFocusRow(null)}
                   onChange={(patch) => p.onRow(r.id, patch)}
@@ -155,6 +155,7 @@ export function Card(p: Props) {
         </Tooltip>
         <CssPicker
           el={p.el}
+          ds={p.ds}
           open={p.pickerOpen}
           onOpenChange={(open) => {
             p.onPickerOpen(open)
@@ -233,6 +234,7 @@ function AfterSlot({ after, onClear }: { after: AfterImage | null; onClear: () =
 function CssRow({
   row,
   ds,
+  classes,
   focus,
   onFocused,
   onChange,
@@ -240,6 +242,7 @@ function CssRow({
 }: {
   row: Row
   ds: DesignSystem
+  classes: string[]
   focus: boolean
   onFocused: () => void
   onChange: (patch: Partial<Row>) => void
@@ -251,8 +254,8 @@ function CssRow({
     inputRef.current?.focus({ preventScroll: true })
     onFocused()
   }, [focus, onFocused])
-  const before = describeValue(row.prop, row.before, ds)
-  const snap = row.after.trim() ? snapValue(row.prop, row.after, ds, parseColor, remPx()) : null
+  const before = ds.nameBefore(row.prop, row.before, classes)
+  const snap = ds.snap(row.prop, row.after)
   return (
     <div className="font-mono text-xs">
       <div className="flex items-center gap-2">
@@ -260,7 +263,7 @@ function CssRow({
           {row.prop}
         </span>
         <span className="min-w-0 flex-1 truncate text-muted-foreground" title={row.before}>
-          {before.token ?? before.text}
+          {before}
         </span>
         <span className="text-muted-foreground">→</span>
         <input
