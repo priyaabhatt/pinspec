@@ -8,7 +8,7 @@ export interface FooterContext {
   hasRows: boolean
   /** At least one row is marked exact. */
   hasExact: boolean
-  /** The After is a pasted image rather than a live render. */
+  /** The After is a pasted image rather than the live preview. */
   hasPastedAfter: boolean
 }
 

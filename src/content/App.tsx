@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { isColorProp } from '@/lib/snap'
+import { resolveRow } from '@/lib/cssRow'
 import { captureElement, loadImage } from './capture'
 import { Card } from './Card'
-import { compose, toPng, type ComposeRow } from './compose'
+import { compose, toPng } from './compose'
 import { caption } from './describe'
 import { footer, tidy } from './footer'
 import { LiveEdits } from './liveEdits'
@@ -38,18 +38,23 @@ export function App({ onClose }: { onClose: () => void }) {
     window.setTimeout(() => setToast((t) => (t?.text === text ? null : t)), tone === 'ok' ? 1600 : 4000)
   }, [])
 
+  // Every CSS row resolved once: the live preview, the card and the handoff
+  // image all read from this.
+  const resolved = useMemo(() => {
+    const classes = el ? classList(el) : []
+    const isValid = (prop: string, value: string) => CSS.supports(prop, value)
+    return new Map(rows.map((r) => [r.id, resolveRow(r, ds, classes, isValid)]))
+  }, [rows, ds, el])
+
   // Live preview: typed after values are applied to the page as you type.
   const applied = useMemo(() => {
     const m = new Map<string, string>()
     for (const r of rows) {
-      const v = r.after.trim()
-      if (!v) continue
-      const snap = r.exact ? null : ds.snap(r.prop, v)
-      const value = snap ? snap.value : v
-      if (CSS.supports(r.prop, value)) m.set(r.prop, value)
+      const preview = resolved.get(r.id)?.preview
+      if (preview) m.set(r.prop, preview)
     }
     return m
-  }, [rows, ds])
+  }, [rows, resolved])
 
   useEffect(() => {
     edits.current.sync(mode === 'card' || mode === 'capturing' ? el : null, applied)
@@ -123,50 +128,25 @@ export function App({ onClose }: { onClose: () => void }) {
     }
   }
 
-  const composeRows = (): ComposeRow[] =>
-    rows
-      .filter((r) => r.after.trim())
-      .map((r) => {
-        const v = r.after.trim()
-        const color = isColorProp(r.prop)
-        const snap = r.exact ? null : ds.snap(r.prop, v)
-        let afterText = v
-        let afterNote: string | undefined
-        if (r.exact) afterNote = 'exact'
-        else if (snap) {
-          afterText = snap.token
-          // Tokens over hex: colour tokens never carry their value.
-          if (!color) afterNote = snap.value
-        }
-        return {
-          prop: r.prop,
-          before: ds.nameBefore(r.prop, r.before, el ? classList(el) : []),
-          after: afterText,
-          afterNote,
-          beforeSwatch: color ? (ds.swatch(r.before) ?? undefined) : undefined,
-          afterSwatch: color ? (ds.swatch(snap?.value ?? v) ?? undefined) : undefined,
-        }
-      })
-
   const copy = () => {
     if (!el || !before || !comment.trim() || busy) return
     setBusy(true)
-    const cRows = composeRows()
+    const cRows = rows.flatMap((r) => resolved.get(r.id)?.handoff ?? [])
     const png = (async () => {
       let afterImg: ComposeRowSource | null = after?.img ?? null
-      // No pasted after: the live render of the CSS edits becomes the After.
+      // No pasted after: the live preview, captured, becomes the After.
       if (!afterImg && cRows.length) afterImg = await captureElement(el)
       const canvas = compose({
         before,
         after: afterImg,
         caption: caption(el),
-        afterCaption: after ? 'Pasted target' : cRows.length ? 'Live render of the CSS below' : '',
+        afterCaption: after ? 'Pasted target' : cRows.length ? 'Live preview of the CSS below' : '',
         rows: cRows,
         comment: tidy(comment),
         footer: footer({
           hasSystem: ds.found,
           hasRows: cRows.length > 0,
-          hasExact: rows.some((r) => r.exact && r.after.trim()),
+          hasExact: rows.some((r) => r.exact && resolved.get(r.id)?.handoff),
           hasPastedAfter: !!after,
         }),
       })
@@ -207,6 +187,7 @@ export function App({ onClose }: { onClose: () => void }) {
               setAfter(null)
             }}
             rows={rows}
+            resolved={resolved}
             onAddRow={(prop) => {
               const id = nextId.current++
               setRows((rs) => [...rs, { id, prop, before: readValue(el, prop), after: '', exact: false }])

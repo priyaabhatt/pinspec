@@ -76,7 +76,7 @@ Then load the `dist` folder as above.
 | Section | Contents |
 | --- | --- |
 | Before | The selected element with a little surrounding context, plus its tag, classes and text |
-| After | Your pasted image, or a live render of the CSS edits |
+| After | Your pasted image, or the live preview of your CSS changes |
 | CSS | Before → after rows, with the snapped token beside each value |
 | Comment | Your comment, as typed or dictated |
 | Footer | Short instructions telling the agent to change only this element and use existing tokens |
