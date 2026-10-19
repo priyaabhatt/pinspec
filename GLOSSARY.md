@@ -30,6 +30,10 @@ _Avoid_: style edit, property row
 
 ## Design system
 
+**Design system**:
+The set of tokens a page exposes through its CSS, read once per pin. Always the page's, never pinspec's own (that is the UI kit).
+_Avoid_: theme, style guide, tokens file
+
 **Token**:
 A named design value the page exposes as a CSS custom property, such as `--spacing`, `--color-muted-foreground` or `--space-4`.
 _Avoid_: variable, design variable
@@ -61,6 +65,10 @@ Ending a pin without copying it (Esc or ✕). Nothing is kept.
 _Avoid_: cancel, delete
 
 ## Interface
+
+**UI kit**:
+The parts pinspec's own toolbar and card are built from; the list is in [docs/ui-kit.md](docs/ui-kit.md).
+_Avoid_: design system, component library
 
 **Toolbar**:
 The small floating bar with the select and turn-off buttons.

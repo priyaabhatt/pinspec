@@ -3,8 +3,9 @@
 // shadcn adds semantic colours like --foreground and --muted-foreground; other
 // sites use names like --space-4 or --brand-primary. tokenKind sorts them.
 
-import { tokenKind, type ColorToken, type DesignSystem, type LengthToken } from '@/lib/snap'
-import { parseColor, resolveLength } from './env'
+import { createDesignSystem, type DesignSystem } from '@/lib/designSystem'
+import { tokenKind, type ColorToken, type LengthToken, type Tokens } from '@/lib/snap'
+import { parseColor, remPx, resolveLength } from './env'
 
 const ROOTISH = /(^|[\s,(]):root\b|(^|[\s,])html\b|:host\b|(^|[\s,])body\b|^\.dark\b|\[data-theme/
 
@@ -22,11 +23,15 @@ function collectNames(rules: CSSRuleList, out: Set<string>) {
   }
 }
 
-let cached: { at: number; ds: DesignSystem } | null = null
-
+/**
+ * Read the page's design system. Called once per selected element, so every
+ * part of a pin (card, picker, handoff image) uses the same snapshot.
+ */
 export function readDesignSystem(): DesignSystem {
-  if (cached && Date.now() - cached.at < 2000) return cached.ds
+  return createDesignSystem(readTokens(), { parseColor, remPx: remPx() })
+}
 
+function readTokens(): Tokens {
   const names = new Set<string>()
   for (const sheet of Array.from(document.styleSheets)) {
     try {
@@ -38,7 +43,7 @@ export function readDesignSystem(): DesignSystem {
   for (const prop of Array.from(document.documentElement.style)) if (prop.startsWith('--')) names.add(prop)
 
   const root = getComputedStyle(document.documentElement)
-  const ds: DesignSystem = { spacing: null, spaces: [], colors: [], radii: [], fontSizes: [], fontWeights: [] }
+  const ds: Tokens = { spacing: null, spaces: [], colors: [], radii: [], fontSizes: [], fontWeights: [] }
   const length = (list: LengthToken[], name: string, value: string) => {
     const px = resolveLength(value)
     if (px !== null && px >= 0 && px < 9999) list.push({ name, px })
@@ -65,7 +70,6 @@ export function readDesignSystem(): DesignSystem {
   ds.spaces.sort(byPx)
   ds.radii.sort(byPx)
   ds.fontSizes.sort(byPx)
-  cached = { at: Date.now(), ds }
   return ds
 }
 

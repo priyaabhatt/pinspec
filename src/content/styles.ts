@@ -1,7 +1,6 @@
 // Reads an element's current styles for the { } picker and for Before values.
 
-import { hex, matchColor, isColorProp, type DesignSystem } from '@/lib/snap'
-import { defaultStyleFor, parseColor } from './env'
+import { defaultStyleFor } from './env'
 
 export const GROUPS: { name: string; props: string[] }[] = [
   {
@@ -97,15 +96,6 @@ export function readStyles(el: Element): { name: string; entries: StyleEntry[] }
     }
     return { name, entries }
   }).filter((g) => g.entries.length)
-}
-
-/** `#6B7280 = --muted-foreground` for colours that match a token exactly. */
-export function describeValue(prop: string, value: string, ds: DesignSystem): { text: string; token?: string } {
-  if (!isColorProp(prop)) return { text: value }
-  const rgba = parseColor(value)
-  if (!rgba) return { text: value }
-  const token = matchColor(rgba, ds.colors)
-  return { text: hex(rgba), token: token?.name }
 }
 
 /** Class list, which survives minification when the page uses Tailwind. */

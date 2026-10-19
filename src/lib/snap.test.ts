@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { snapValue, tokenKind, type DesignSystem, type Rgba } from './snap'
+import { snapValue, tokenKind, type Tokens, type Rgba } from './snap'
 
-const ds: DesignSystem = {
+const ds: Tokens = {
   spacing: 4,
   spaces: [],
   colors: [
@@ -49,7 +49,7 @@ describe('snapValue', () => {
   })
 
   it('returns null with no system', () => {
-    const none: DesignSystem = { spacing: null, spaces: [], colors: [], radii: [], fontSizes: [], fontWeights: [] }
+    const none: Tokens = { spacing: null, spaces: [], colors: [], radii: [], fontSizes: [], fontWeights: [] }
     expect(snapValue('width', '350px', none, hexColor)).toBeNull()
     expect(snapValue('color', '#fff000', none, hexColor)).toBeNull()
   })
@@ -78,7 +78,7 @@ describe('tokenKind', () => {
 })
 
 describe('snapValue on a non-Tailwind site', () => {
-  const custom: DesignSystem = {
+  const custom: Tokens = {
     spacing: null,
     spaces: [
       { name: '--space-2', px: 8 },
@@ -104,7 +104,7 @@ describe('snapValue on a non-Tailwind site', () => {
   })
 
   it('prefers the Tailwind name when an alias has the same value', () => {
-    const tw: DesignSystem = { ...ds, radii: [{ name: '--radius', px: 8 }, { name: '--radius-lg', px: 8 }] }
+    const tw: Tokens = { ...ds, radii: [{ name: '--radius', px: 8 }, { name: '--radius-lg', px: 8 }] }
     expect(snapValue('border-radius', '8px', tw, hexColor)?.token).toBe('rounded-lg')
   })
 })

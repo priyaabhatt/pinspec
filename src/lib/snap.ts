@@ -1,5 +1,6 @@
-// Pure snapping logic: given a typed value and the page's design system,
-// find the nearest step or token. No DOM access here so it can be unit tested.
+// Pure snapping rules: given a typed value and the page's tokens, find the
+// nearest step or token. No DOM access here so it can be unit tested. The
+// design system module (designSystem.ts) is the interface callers use.
 
 export type Rgba = [number, number, number, number]
 
@@ -15,7 +16,8 @@ export interface LengthToken {
   px: number
 }
 
-export interface DesignSystem {
+/** The tokens read from a page, sorted by kind. */
+export interface Tokens {
   /** Tailwind v4 --spacing base, in px (usually 4). */
   spacing: number | null
   /** A named spacing scale (--space-4, --gap-md) on sites without Tailwind's --spacing. */
@@ -85,7 +87,7 @@ export function isColorProp(prop: string) {
   return prop in COLOR_PREFIX
 }
 
-export function hasSystem(ds: DesignSystem) {
+export function hasSystem(ds: Tokens) {
   return ds.spacing !== null || [ds.spaces, ds.colors, ds.radii, ds.fontSizes, ds.fontWeights].some((t) => t.length > 0)
 }
 
@@ -240,7 +242,7 @@ export function snapColor(prop: string, rgba: Rgba, tokens: ColorToken[]): Snap 
 export function snapValue(
   prop: string,
   value: string,
-  ds: DesignSystem,
+  ds: Tokens,
   parseColor: (v: string) => Rgba | null,
   remPx = 16,
 ): Snap | null {

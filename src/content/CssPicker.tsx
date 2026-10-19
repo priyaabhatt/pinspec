@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import { classList, describeValue, readStyles } from './styles'
-import { readDesignSystem } from './tokens'
+import type { DesignSystem } from '@/lib/designSystem'
+import { classList, readStyles } from './styles'
 
 interface Props {
   el: Element | null
+  /** The pin's design system snapshot, so names match the card and the image. */
+  ds: DesignSystem
   open: boolean
   onOpenChange: (open: boolean) => void
   /** Properties that already have a row; shown ticked. */
@@ -20,11 +22,10 @@ interface Props {
  * { } — the element's non-default styles, like Figma's "+ Property".
  * Tick any number of properties; each ticked one becomes a CSS row.
  */
-export function CssPicker({ el, open, onOpenChange, checked, onToggle }: Props) {
+export function CssPicker({ el, ds, open, onOpenChange, checked, onToggle }: Props) {
   const [filter, setFilter] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const groups = useMemo(() => (el && open ? readStyles(el) : []), [el, open])
-  const ds = useMemo(() => (open ? readDesignSystem() : null), [open])
   const classes = el ? classList(el) : []
 
   const q = filter.trim().toLowerCase()
@@ -95,7 +96,7 @@ export function CssPicker({ el, open, onOpenChange, checked, onToggle }: Props) 
             <div key={g.name} className="pb-1">
               <div className="px-2 pt-2 pb-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{g.name}</div>
               {g.entries.map((e) => {
-                const d = ds ? describeValue(e.prop, e.value, ds) : { text: e.value }
+                const shown = ds.nameBefore(e.prop, e.value, classes)
                 const on = checked.has(e.prop)
                 return (
                   <button
@@ -116,7 +117,7 @@ export function CssPicker({ el, open, onOpenChange, checked, onToggle }: Props) 
                     </span>
                     <span className="shrink-0">{e.prop}</span>
                     <span className="ml-auto truncate text-muted-foreground" title={e.value}>
-                      {d.token ?? d.text}
+                      {shown}
                     </span>
                   </button>
                 )
