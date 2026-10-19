@@ -22,25 +22,25 @@ Use each skill in `.claude/skills/` (see its README) whenever its trigger comes 
 
 | Trigger | Skill |
 | --- | --- |
-| Writing or changing a module, an interface or where logic lives | `codebase-design` (modules below) |
-| A bug report, a failing test, "it doesn't work" | `diagnosing-bugs`: build a loop that goes red before reading code for a cause |
+| Adding a module, changing an interface, or moving logic between modules | `codebase-design` (modules below) |
+| A bug report, a failing test, "it doesn't work" | `diagnosing-bugs` |
 | A new term, a renamed concept, or a decision that is hard to reverse and surprising | `domain-modeling`: update `GLOSSARY.md`, offer an ADR |
-| A plan or refactor to agree before building | `grilling`, one round of questions at a time |
-| Before opening a PR that changes code | `code-review` against `origin/main`; fix hard violations, list judgement calls under Evidence |
+| A refactor, or a feature with choices only the user can make | `grilling` |
+| Before opening a PR that changes code | `code-review` against `origin/main`; fix hard violations, and say in the PR which judgement calls you left |
 | Writing any PR body | `pr` |
 | Editing this file or a skill | `writing-for-agents` |
-| A batch of features has landed | suggest `/improve-codebase-architecture` (user-invoked) |
-| A long session is ending | suggest `/retro` (user-invoked) |
+| The file you're changing was also changed in each of the last 3 merged PRs (`git log --merges`) | suggest `/improve-codebase-architecture` (user-invoked) |
+| The user says they're done or wrapping up | suggest `/retro` (user-invoked) |
 
 How they map onto this repo:
 
-- **Deep modules:** pure logic lives in `src/lib/` behind a small interface; browser code in `src/content/` is the adapter.
-  - Design system (`designSystem.ts`): snap and name values. Seam: `PageReader`.
-  - CSS row (`cssRow.ts`): one row resolved for the live preview, the card and the handoff image.
-  - Pin (`pin.ts`): a pin's lifecycle. Seam: `PinEnvironment`, real in `src/content/pinEnvironment.ts`.
-  - Capture (`src/content/capture.ts`): screenshots and stitching, behind `captureElement(el)`.
+- **Deep modules:** pure logic sits in `src/lib/` behind a small interface, with the browser reached through a seam whose real adapter is in `src/content/`.
+  - Design system, `src/lib/designSystem.ts`: snap and name values. Seam `PageReader`.
+  - CSS row, `src/lib/cssRow.ts`: one row resolved for the live preview, the card and the handoff image.
+  - Pin, `src/lib/pin.ts`: a pin's lifecycle. Seam `PinEnvironment`, real adapter `src/content/pinEnvironment.ts`.
+  - Capture, `src/content/capture.ts`: screenshots and stitching. Browser-bound, so it lives in `src/content/`; its interface is `captureElement(el)` and `loadImage(src)`.
 
-  Put new behaviour inside one of these interfaces before adding a module, and test it there.
+  Put new behaviour inside one of these interfaces before adding a module, and test it through that interface.
 
 - **Issue tracker:** GitHub Issues on `priyaabhatt/pinspec`. A PR's spec is the issue it closes ("Closes #N" / "Part of #N"); read it with the GitHub tools.
 - **Standards sources for `code-review`:** this file, the "Contributing" section of `README.md`, `.github/pull_request_template.md`, and `tsconfig.json` (strict TypeScript). Typecheck, tests and the build are enforced by CI, so don't report what they already catch.

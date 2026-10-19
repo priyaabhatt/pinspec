@@ -114,3 +114,79 @@ describe('swatch and found', () => {
     expect(createDesignSystem({ spacing: null, spaces: [], colors: [], radii: [], fontSizes: [], fontWeights: [] }, page).found).toBe(false)
   })
 })
+
+describe('snapping after values', () => {
+  const scale = createDesignSystem(
+    {
+      ...tailwind,
+      colors: [...tailwind.colors, { name: '--color-foreground', rgba: [10, 10, 10, 1] }],
+      radii: [
+        { name: '--radius-sm', px: 4 },
+        { name: '--radius-md', px: 6 },
+        { name: '--radius-lg', px: 8 },
+      ],
+      fontSizes: [
+        { name: '--text-sm', px: 14 },
+        { name: '--text-base', px: 16 },
+      ],
+      fontWeights: [
+        { name: '--font-weight-medium', px: 500 },
+        { name: '--font-weight-bold', px: 700 },
+      ],
+    },
+    page,
+  )
+  const handRolled = createDesignSystem(
+    {
+      spacing: null,
+      spaces: [
+        { name: '--space-2', px: 8 },
+        { name: '--space-4', px: 16 },
+        { name: '--space-6', px: 24 },
+      ],
+      colors: [{ name: '--brand-primary', rgba: [37, 99, 235, 1] }],
+      radii: [
+        { name: '--rounded-sm', px: 4 },
+        { name: '--rounded-md', px: 8 },
+      ],
+      fontSizes: [{ name: '--font-size-body', px: 16 }],
+      fontWeights: [{ name: '--fw-bold', px: 700 }],
+    },
+    page,
+  )
+
+  it('snaps lengths to the spacing scale, including rem and negatives', () => {
+    expect(scale.snap('width', '350px')).toEqual({ token: 'w-88', value: '352px', exact: false })
+    expect(scale.snap('padding-left', '1rem')).toEqual({ token: 'pl-4', value: '16px', exact: true })
+    expect(scale.snap('margin-top', '-8px')?.token).toBe('-mt-2')
+  })
+
+  it('snaps radius, font size and weight to the nearest token', () => {
+    expect(scale.snap('border-radius', '8px')).toEqual({ token: 'rounded-lg', value: '8px', exact: true })
+    expect(scale.snap('border-radius', '7.5px')?.token).toBe('rounded-lg')
+    expect(scale.snap('font-size', '15px')?.token).toMatch(/text-(sm|base)/)
+    expect(scale.snap('font-weight', '650')?.token).toBe('font-bold')
+  })
+
+  it('snaps colours to the nearest token, semantic names first', () => {
+    expect(scale.snap('background-color', '#0B0B0B')).toMatchObject({ token: 'bg-foreground', exact: false })
+  })
+
+  it('prefers the Tailwind name when an alias has the same value', () => {
+    expect(tw.snap('border-radius', '8px')?.token).toBe('rounded-lg')
+  })
+
+  it('snaps to a hand-rolled scale and writes var()', () => {
+    expect(handRolled.snap('gap', '24px')).toEqual({ token: 'var(--space-6)', value: '24px', exact: true })
+    expect(handRolled.snap('border-radius', '7px')?.token).toBe('var(--rounded-md)')
+    expect(handRolled.snap('font-size', '15px')?.token).toBe('var(--font-size-body)')
+    expect(handRolled.snap('font-weight', '700')?.token).toBe('var(--fw-bold)')
+    expect(handRolled.snap('color', '#2563EB')).toMatchObject({ token: 'var(--brand-primary)', exact: true })
+  })
+
+  it('snaps nothing when the page has no tokens', () => {
+    const none = createDesignSystem({ spacing: null, spaces: [], colors: [], radii: [], fontSizes: [], fontWeights: [] }, page)
+    expect(none.snap('width', '350px')).toBeNull()
+    expect(none.snap('color', '#fff000')).toBeNull()
+  })
+})
