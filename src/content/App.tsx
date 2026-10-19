@@ -170,6 +170,7 @@ export function App({ onClose }: { onClose: () => void }) {
           hasSystem: hasSystem(ds),
           hasRows: cRows.length > 0,
           hasExact: rows.some((r) => r.exact && r.after.trim()),
+          hasPastedAfter: !!after,
         }),
       })
       return toPng(canvas)
