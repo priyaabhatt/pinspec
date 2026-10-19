@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Copy, ImagePlus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
@@ -137,7 +137,8 @@ export function Card(p: Props) {
                   key={r.id}
                   row={r}
                   ds={p.ds}
-                  autoFocus={focusRow === r.id}
+                  focus={focusRow === r.id}
+                  onFocused={() => setFocusRow(null)}
                   onChange={(patch) => p.onRow(r.id, patch)}
                   onRemove={() => p.onRemoveRow(r.id)}
                 />
@@ -155,9 +156,19 @@ export function Card(p: Props) {
         <CssPicker
           el={p.el}
           open={p.pickerOpen}
-          onOpenChange={p.onPickerOpen}
-          taken={new Set(p.rows.map((r) => r.prop))}
-          onAdd={(prop) => setFocusRow(p.onAddRow(prop))}
+          onOpenChange={(open) => {
+            p.onPickerOpen(open)
+            // Closing the picker moves you to the first row still waiting for an after value.
+            if (!open) setFocusRow(p.rows.find((r) => !r.after.trim())?.id ?? null)
+          }}
+          checked={new Set(p.rows.map((r) => r.prop))}
+          onToggle={(prop, on) => {
+            if (on) p.onAddRow(prop)
+            else {
+              const row = p.rows.find((r) => r.prop === prop)
+              if (row) p.onRemoveRow(row.id)
+            }
+          }}
         />
         <div className="ml-auto">
           <Tooltip label={canCopy ? 'Copy image and finish' : 'Write a comment first'} shortcut="⌘↵">
@@ -222,16 +233,24 @@ function AfterSlot({ after, onClear }: { after: AfterImage | null; onClear: () =
 function CssRow({
   row,
   ds,
-  autoFocus,
+  focus,
+  onFocused,
   onChange,
   onRemove,
 }: {
   row: Row
   ds: DesignSystem
-  autoFocus: boolean
+  focus: boolean
+  onFocused: () => void
   onChange: (patch: Partial<Row>) => void
   onRemove: () => void
 }) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (!focus) return
+    inputRef.current?.focus({ preventScroll: true })
+    onFocused()
+  }, [focus, onFocused])
   const before = describeValue(row.prop, row.before, ds)
   const snap = row.after.trim() ? snapValue(row.prop, row.after, ds, parseColor, remPx()) : null
   return (
@@ -245,7 +264,7 @@ function CssRow({
         </span>
         <span className="text-muted-foreground">→</span>
         <input
-          autoFocus={autoFocus}
+          ref={inputRef}
           value={row.after}
           onChange={(e) => onChange({ after: e.target.value })}
           placeholder="after"

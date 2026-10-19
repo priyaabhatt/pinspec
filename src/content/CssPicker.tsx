@@ -1,8 +1,9 @@
 import { useMemo, useRef, useState } from 'react'
-import { Braces } from 'lucide-react'
+import { Braces, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 import { classList, describeValue, readStyles } from './styles'
 import { readDesignSystem } from './tokens'
 
@@ -10,33 +11,31 @@ interface Props {
   el: Element | null
   open: boolean
   onOpenChange: (open: boolean) => void
-  taken: Set<string>
-  onAdd: (prop: string) => void
+  /** Properties that already have a row; shown ticked. */
+  checked: Set<string>
+  onToggle: (prop: string, checked: boolean) => void
 }
 
-/** { } — the element's non-default styles, like Figma's "+ Property". */
-export function CssPicker({ el, open, onOpenChange, taken, onAdd }: Props) {
+/**
+ * { } — the element's non-default styles, like Figma's "+ Property".
+ * Tick any number of properties; each ticked one becomes a CSS row.
+ */
+export function CssPicker({ el, open, onOpenChange, checked, onToggle }: Props) {
   const [filter, setFilter] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
-  const added = useRef(false)
   const groups = useMemo(() => (el && open ? readStyles(el) : []), [el, open])
   const ds = useMemo(() => (open ? readDesignSystem() : null), [open])
   const classes = el ? classList(el) : []
 
   const q = filter.trim().toLowerCase()
   const shown = groups
-    .map((g) => ({ ...g, entries: g.entries.filter((e) => !taken.has(e.prop) && (!q || e.prop.includes(q))) }))
+    .map((g) => ({ ...g, entries: g.entries.filter((e) => !q || e.prop.includes(q)) }))
     .filter((g) => g.entries.length)
   const custom =
-    q && !shown.some((g) => g.entries.some((e) => e.prop === q)) && !taken.has(q) && CSS.supports(q, 'initial') ? q : null
+    q && !shown.some((g) => g.entries.some((e) => e.prop === q)) && !checked.has(q) && CSS.supports(q, 'initial') ? q : null
   const first = shown[0]?.entries[0]?.prop ?? custom
 
-  const add = (prop: string) => {
-    added.current = true
-    onAdd(prop)
-    setFilter('')
-    onOpenChange(false)
-  }
+  const toggle = (prop: string) => onToggle(prop, !checked.has(prop))
 
   return (
     <Popover
@@ -60,11 +59,8 @@ export function CssPicker({ el, open, onOpenChange, taken, onAdd }: Props) {
           e.preventDefault()
           inputRef.current?.focus()
         }}
-        onCloseAutoFocus={(e) => {
-          // A new row focuses its own after input; don't steal it back.
-          if (added.current) e.preventDefault()
-          added.current = false
-        }}
+        // The card focuses the first new row's after input on close.
+        onCloseAutoFocus={(e) => e.preventDefault()}
         className="flex max-h-[min(420px,var(--radix-popover-content-available-height))] w-[320px] flex-col overflow-hidden p-0">
         <div className="border-b p-2">
           <input
@@ -74,7 +70,8 @@ export function CssPicker({ el, open, onOpenChange, taken, onAdd }: Props) {
             onKeyDown={(e) => {
               if (e.key === 'Enter' && first) {
                 e.preventDefault()
-                add(first)
+                toggle(first)
+                setFilter('')
               }
             }}
             placeholder="Filter, or type any property"
@@ -85,7 +82,10 @@ export function CssPicker({ el, open, onOpenChange, taken, onAdd }: Props) {
           {custom && (
             <button
               type="button"
-              onClick={() => add(custom)}
+              onClick={() => {
+                toggle(custom)
+                setFilter('')
+              }}
               className="flex w-full items-center rounded px-2 py-1.5 text-left font-mono text-xs hover:bg-accent"
             >
               Add <span className="ml-1 font-semibold">{custom}</span>
@@ -96,13 +96,24 @@ export function CssPicker({ el, open, onOpenChange, taken, onAdd }: Props) {
               <div className="px-2 pt-2 pb-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{g.name}</div>
               {g.entries.map((e) => {
                 const d = ds ? describeValue(e.prop, e.value, ds) : { text: e.value }
+                const on = checked.has(e.prop)
                 return (
                   <button
                     key={e.prop}
                     type="button"
-                    onClick={() => add(e.prop)}
-                    className="flex w-full items-baseline gap-3 rounded px-2 py-1 text-left font-mono text-xs hover:bg-accent"
+                    role="checkbox"
+                    aria-checked={on}
+                    onClick={() => toggle(e.prop)}
+                    className="flex w-full items-center gap-2 rounded px-2 py-1 text-left font-mono text-xs hover:bg-accent"
                   >
+                    <span
+                      className={cn(
+                        'flex size-3.5 shrink-0 items-center justify-center rounded-[3px] border border-muted-foreground/50',
+                        on && 'border-highlight bg-highlight text-white',
+                      )}
+                    >
+                      {on && <Check className="size-3" strokeWidth={3} />}
+                    </span>
                     <span className="shrink-0">{e.prop}</span>
                     <span className="ml-auto truncate text-muted-foreground" title={e.value}>
                       {d.token ?? d.text}
@@ -114,6 +125,14 @@ export function CssPicker({ el, open, onOpenChange, taken, onAdd }: Props) {
           ))}
           {!shown.length && !custom && <div className="px-2 py-3 text-xs text-muted-foreground">No matching properties</div>}
         </div>
+        {checked.size > 0 && (
+          <div className="flex items-center justify-between border-t px-3 py-1.5 text-xs text-muted-foreground">
+            {checked.size} selected
+            <button type="button" onClick={() => onOpenChange(false)} className="font-medium text-foreground hover:underline">
+              Done
+            </button>
+          </div>
+        )}
         {classes.length > 0 && (
           <div className="max-h-24 overflow-y-auto border-t p-2">
             <div className="pb-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Classes</div>
