@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Clearer agent footer: how to find the element, where the target comes from, and only this usage of a shared component (#4).
+- Snapping works on non-Tailwind sites with names like `--space-4`, `--rounded-md` or `--brand-primary`, shown as `var(--space-4)` (#8).
+- End-to-end tests in a real browser, run in CI on every pull request (#9).
+- Chrome Web Store listing, graphics, privacy policy, and versioned release zips from `v*` tags (#10).
 - Easier selection: icons select as one `<svg>`, invisible overlays are skipped, ↓ steps into the child under the pointer, and the hover label shows a breadcrumb (#7).
 - New logo: a pointer over a selection box.
 - ⌥⇧P (Alt+Shift+P) turns pinspec on and off (#3).
