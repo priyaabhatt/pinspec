@@ -18,47 +18,25 @@ When a designer hands a developer a screenshot, the coding agent has to guess wh
   <img src="docs/images/handoff.png" width="720" alt="A pinspec handoff image: Before and After screenshots of a button, changes written as sentences such as &quot;Change the width from 232px to w-88 (352px), the nearest step to 350px.&quot;, and the comment." />
 </p>
 
-## Features
-
-- **Works on any page:** production, Vercel previews and localhost. It reads the rendered page; no source code or dev install needed.
-- **Precise selection:** hover to highlight, ↑ and ↓ to move between parent and child, click to pick. Icons and elements under invisible overlays are easy to reach.
-- **Before and After:** the element is captured automatically; paste the target image with ⌘V.
-- **CSS rows:** tick the properties you want to change and type the new values. They're applied live on the page.
-- **Snapped to the design system:** reads Tailwind v4 and shadcn tokens from the page, so `350px` becomes `w-88` and `#6B7280` becomes `text-muted-foreground`. Sites with their own names (`--space-4`, `--brand-primary`) snap to `var(--space-4)`. Mark any row **exact** to keep your value.
-- **Private by design:** no backend, no network calls, nothing stored. The pin is gone once copied.
-
-<p align="center">
-  <img src="docs/images/card.png" width="720" alt="The pinspec annotation card attached to a selected button, showing the element's screenshot, the after-image slot, a comment and three CSS rows." />
-</p>
-
 ## Install
 
-### From the prebuilt branch (recommended)
+**With a coding agent (easiest):** paste this into Claude Code, Codex or Cursor:
 
-Every merge to `main` builds the extension and publishes it to the [`extension`](https://github.com/priyaabhatt/pinspec/tree/extension) branch, ready to load.
+> Install the pinspec Chrome extension for me by following https://github.com/priyaabhatt/pinspec/blob/main/INSTALL.md
 
-```sh
-git clone -b extension https://github.com/priyaabhatt/pinspec.git pinspec-extension
-```
+The agent downloads pinspec and opens Chrome's extensions page; you then click through three short steps it gives you.
 
-1. Open `chrome://extensions` and turn on **Developer mode**.
-2. Click **Load unpacked** and choose the `pinspec-extension` folder.
-3. Pin pinspec from the puzzle-piece menu.
+**By hand:**
 
-To update, run `git pull` in that folder and click ↻ on pinspec's card in `chrome://extensions`.
+1. Download the built extension (needs [git](https://git-scm.com/downloads)):
+   ```sh
+   git clone -b extension https://github.com/priyaabhatt/pinspec.git ~/pinspec-extension
+   ```
+2. In Chrome, open `chrome://extensions` and turn on **Developer mode** (top right).
+3. Click **Load unpacked** and choose the `pinspec-extension` folder in your home folder.
+4. Pin pinspec from the puzzle-piece menu, open any website and press **⌥⇧P** (Alt+Shift+P on Windows and Linux).
 
-### From source
-
-Requires Node 20 or newer.
-
-```sh
-git clone https://github.com/priyaabhatt/pinspec.git
-cd pinspec
-npm install
-npm run build
-```
-
-Then load the `dist` folder as above.
+To update, run `git -C ~/pinspec-extension pull` and click ↻ on pinspec's card in `chrome://extensions`. [INSTALL.md](INSTALL.md) has the details, other browsers and troubleshooting.
 
 ## Usage
 
@@ -80,11 +58,39 @@ Esc while the card is open discards the pin; the toolbar's ✕ turns pinspec off
 | Changes | Each CSS row as a sentence, e.g. "Change the width from 232px to w-88 (352px), the nearest step to 350px." |
 | Comment | Your comment, as typed or dictated |
 
+## Features
+
+- **Works on any page:** production, Vercel previews and localhost. It reads the rendered page; no source code or dev install needed.
+- **Precise selection:** hover to highlight, ↑ and ↓ to move between parent and child, click to pick. Icons and elements under invisible overlays are easy to reach.
+- **Before and After:** the element is captured automatically; paste the target image with ⌘V.
+- **CSS rows:** tick the properties you want to change and type the new values. They're applied live on the page.
+- **Snapped to the design system:** reads Tailwind v4 and shadcn tokens from the page, so `350px` becomes `w-88` and `#6B7280` becomes `text-muted-foreground`. Sites with their own names (`--space-4`, `--brand-primary`) snap to `var(--space-4)`. Mark any row **exact** to keep your value.
+- **Private by design:** no backend, no network calls, nothing stored. The pin is gone once copied.
+
+<p align="center">
+  <img src="docs/images/card.png" width="720" alt="The pinspec annotation card attached to a selected button, showing the element's screenshot, the after-image slot, a comment and three CSS rows." />
+</p>
+
 ## Permissions and privacy
 
 pinspec asks only for `activeTab` and `scripting`. It runs on a tab only after you click its icon, and it never sends data anywhere. Screenshots and the composed image stay in your browser until you paste them. See the [privacy policy](PRIVACY.md).
 
 ## Development
+
+### Build from source
+
+Requires Node 20 or newer.
+
+```sh
+git clone https://github.com/priyaabhatt/pinspec.git
+cd pinspec
+npm install
+npm run build
+```
+
+Then load the `dist` folder with **Load unpacked**, as in [Install](#install).
+
+### Scripts
 
 ```sh
 npm run dev        # rebuild the content script on save
