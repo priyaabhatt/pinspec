@@ -38,6 +38,8 @@ The agent downloads pinspec and opens Chrome's extensions page; you then click t
 
 To update, run `git -C ~/pinspec-extension pull` and click ↻ on pinspec's card in `chrome://extensions`. [INSTALL.md](INSTALL.md) has the details, other browsers and troubleshooting.
 
+**Want your own version?** Fork the repository and build it yourself: [BUILD-YOUR-OWN.md](BUILD-YOUR-OWN.md) covers copying, building, renaming, sharing with your team and pulling in later updates.
+
 ## Usage
 
 1. Click the pinspec icon or press **⌥⇧P** (**Alt+Shift+P** on Windows and Linux). The toolbar appears and selection starts. The same shortcut turns pinspec off; change it at `chrome://extensions/shortcuts`.
@@ -89,6 +91,8 @@ npm run build
 ```
 
 Then load the `dist` folder with **Load unpacked**, as in [Install](#install).
+
+To make and share your own version, see [BUILD-YOUR-OWN.md](BUILD-YOUR-OWN.md).
 
 ### Scripts
 
