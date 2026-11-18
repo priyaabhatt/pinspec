@@ -1,18 +1,34 @@
 import { useEffect, useRef, useState } from 'react'
+import type { Area } from '@/lib/pin'
 import { getHost } from './env'
 import { breadcrumb, childAt, elementAt } from './hit'
 import { useRect } from './useRect'
 
 interface Props {
-  onPick: (el: Element) => void
+  /** An element, or with `area` a box dragged on the element under it. */
+  onPick: (el: Element, area: Area | null) => void
   onCancel: () => void
 }
+
+/** How far the pointer moves with the button down before a click becomes a drag. */
+const DRAG_START = 6
+
+interface Box {
+  x0: number
+  y0: number
+  x1: number
+  y1: number
+}
+
+const boxRect = (b: Box) =>
+  new DOMRect(Math.min(b.x0, b.x1), Math.min(b.y0, b.y1), Math.abs(b.x1 - b.x0), Math.abs(b.y1 - b.y0))
 
 /**
  * Crosshair selection. A transparent layer over the page catches the pointer,
  * so page clicks never fire; the element under it is found by hit-testing.
  * ↑ climbs to the parent, ↓ steps back down (or into the child under the
- * pointer), Esc cancels.
+ * pointer), Esc cancels. Dragging draws a box instead, for parts of a page
+ * that aren't elements of their own, such as frames drawn on a canvas.
  */
 export function Selector({ onPick, onCancel }: Props) {
   /** The element under the pointer, before any ↑ or ↓. */
@@ -21,6 +37,9 @@ export function Selector({ onPick, onCancel }: Props) {
   /** Elements left by ↑, so ↓ retraces the same path. */
   const trail = useRef<Element[]>([])
   const point = useRef<{ x: number; y: number } | null>(null)
+  /** Where the button went down, until it comes up. */
+  const press = useRef<{ x: number; y: number } | null>(null)
+  const [box, setBox] = useState<Box | null>(null)
   const rect = useRect(target)
 
   const hitTest = (x: number, y: number) => {
@@ -47,7 +66,12 @@ export function Selector({ onPick, onCancel }: Props) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel()
+      if (e.key === 'Escape') {
+        if (press.current) {
+          press.current = null
+          setBox(null)
+        } else onCancel()
+      }
       else if (e.key === 'ArrowUp') up()
       else if (e.key === 'ArrowDown') down()
       else return
@@ -72,17 +96,35 @@ export function Selector({ onPick, onCancel }: Props) {
         className="pointer-events-auto fixed inset-0 z-10 cursor-crosshair"
         onMouseMove={(e) => {
           point.current = { x: e.clientX, y: e.clientY }
-          hitTest(e.clientX, e.clientY)
+          const start = press.current
+          if (start && (box || Math.hypot(e.clientX - start.x, e.clientY - start.y) > DRAG_START)) {
+            setBox({ x0: start.x, y0: start.y, x1: e.clientX, y1: e.clientY })
+          } else if (!box) hitTest(e.clientX, e.clientY)
         }}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={(e) => {
+        onMouseDown={(e) => {
           e.preventDefault()
-          const picked = target ?? elementAt(e.clientX, e.clientY, getHost())
-          if (picked) onPick(picked)
+          if (e.button === 0) press.current = { x: e.clientX, y: e.clientY }
+        }}
+        onMouseUp={(e) => {
+          if (!press.current) return
+          press.current = null
+          if (box) {
+            e.preventDefault()
+            setBox(null)
+            const r = boxRect(box)
+            const under = elementAt(r.left + r.width / 2, r.top + r.height / 2, getHost())
+            if (!under) return
+            const el = under.getBoundingClientRect()
+            onPick(under, { left: r.left - el.left, top: r.top - el.top, width: r.width, height: r.height })
+          } else {
+            const picked = target ?? elementAt(e.clientX, e.clientY, getHost())
+            if (picked) onPick(picked, null)
+          }
         }}
         onWheel={() => point.current && requestAnimationFrame(() => hitTest(point.current!.x, point.current!.y))}
       />
-      {target && rect && (
+      {box && <BoxOutline rect={boxRect(box)} />}
+      {!box && target && rect && (
         <>
           <div
             className="pointer-events-none fixed z-20 rounded-[2px] border border-highlight bg-highlight/20"
@@ -114,6 +156,23 @@ export function Selector({ onPick, onCancel }: Props) {
           </div>
         </>
       )}
+    </>
+  )
+}
+
+function BoxOutline({ rect }: { rect: DOMRect }) {
+  return (
+    <>
+      <div
+        className="pointer-events-none fixed z-20 rounded-[2px] border border-highlight bg-highlight/20"
+        style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
+      />
+      <div
+        className="pointer-events-none fixed z-20 rounded bg-highlight px-1.5 py-0.5 font-mono text-[11px] leading-4 text-white shadow"
+        style={{ left: rect.left, top: rect.top > 24 ? rect.top - 22 : rect.bottom + 4 }}
+      >
+        {Math.round(rect.width)} × {Math.round(rect.height)}
+      </div>
     </>
   )
 }

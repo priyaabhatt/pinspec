@@ -12,6 +12,18 @@ export type Stage = 'idle' | 'selecting' | 'capturing' | 'card'
 /** Anything the handoff image can draw: a screenshot canvas or a pasted image. */
 export type Picture = CanvasImageSource & { width: number; height: number }
 
+/**
+ * A box dragged on the page instead of a picked element, in px relative to the
+ * box of the element under it. For pages that draw on a canvas (Figma, maps),
+ * where there is no element for the part you mean.
+ */
+export interface Area {
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
 export interface AfterImage {
   url: string
   img: Picture
@@ -30,8 +42,8 @@ export interface HandoffInput {
 
 /** Everything the pin needs from the outside world. */
 export interface PinEnvironment {
-  /** Screenshot the element (the live preview shows in it). */
-  capture(el: Element): Promise<HTMLCanvasElement>
+  /** Screenshot the element, or just the area of it when given (the live preview shows in it). */
+  capture(el: Element, area: Area | null): Promise<HTMLCanvasElement>
   /** Read the page's design system for a newly selected element. */
   designSystem(): DesignSystem
   /** The element's current value for a CSS property. */
@@ -51,6 +63,8 @@ export interface PinEnvironment {
 export interface PinState {
   stage: Stage
   element: Element | null
+  /** Set when the pin is a dragged box rather than the whole element. CSS rows don't apply to it. */
+  area: Area | null
   before: HTMLCanvasElement | null
   comment: string
   after: AfterImage | null
@@ -59,7 +73,7 @@ export interface PinState {
   resolved: Map<number, ResolvedRow>
   designSystem: DesignSystem | null
   busy: boolean
-  /** An element, a Before and a comment, and not already copying. */
+  /** An element and a Before, something to hand off (a comment, an After or a change), and not already copying. */
   canCopy: boolean
 }
 
@@ -69,6 +83,7 @@ export type Outcome = { ok: true } | { ok: false; error: string | null }
 const EMPTY: PinState = {
   stage: 'idle',
   element: null,
+  area: null,
   before: null,
   comment: '',
   after: null,
@@ -112,7 +127,7 @@ export class Pin {
   /** Remove: let go of the element and go back to selecting. The draft is kept. */
   removeElement() {
     this.generation++
-    this.set({ stage: 'selecting', element: null, before: null })
+    this.set({ stage: 'selecting', element: null, area: null, before: null })
   }
 
   /** Esc or the pointer button while selecting. The draft waits for the next pick. */
@@ -121,15 +136,16 @@ export class Pin {
     this.set({ stage: 'idle' })
   }
 
-  async pick(el: Element): Promise<Outcome> {
+  /** Pick an element, or a dragged area of the element under it. */
+  async pick(el: Element, area: Area | null = null): Promise<Outcome> {
     const generation = ++this.generation
     this.set({ stage: 'capturing' })
     try {
-      const before = await this.env.capture(el)
+      const before = await this.env.capture(el, area)
       // Overtaken while capturing: leave the pin as it is now.
       if (generation !== this.generation) return { ok: false, error: null }
       const rows = this.state.rows.map((r) => ({ ...r, before: this.env.readValue(el, r.prop) }))
-      this.set({ stage: 'card', element: el, before, rows, designSystem: this.env.designSystem() })
+      this.set({ stage: 'card', element: el, area, before, rows, designSystem: this.env.designSystem() })
       return { ok: true }
     } catch (err) {
       if (generation !== this.generation) return { ok: false, error: null }
@@ -196,7 +212,7 @@ export class Pin {
     this.set({ busy: true })
     const png = (async () => {
       // No pasted After: the live preview, captured, becomes the After.
-      const after = s.after?.img ?? (changes.length ? await this.env.capture(el) : null)
+      const after = s.after?.img ?? (changes.length ? await this.env.capture(el, s.area) : null)
       return this.env.render({
         before: s.before!,
         after,
@@ -229,7 +245,8 @@ export class Pin {
     const next = { ...this.state, ...patch }
     // Rows are re-resolved whenever they, the element or the design system change.
     if (affectsRows(patch)) next.resolved = resolveAll(next, this.env)
-    next.canCopy = !!next.element && !!next.before && next.comment.trim().length > 0 && !next.busy
+    const handoff = next.comment.trim().length > 0 || !!next.after || [...next.resolved.values()].some((r) => r.handoff)
+    next.canCopy = !!next.element && !!next.before && handoff && !next.busy
     this.state = next
     if (affectsRows(patch) || patch.stage) this.syncPreview()
     this.emit()
@@ -256,11 +273,12 @@ export class Pin {
 
 /** Rows resolve against the element and design system, so these changes re-resolve them (and the live preview). */
 function affectsRows(patch: Partial<PinState>) {
-  return !!patch.rows || patch.element !== undefined || !!patch.designSystem
+  return !!patch.rows || patch.element !== undefined || patch.area !== undefined || !!patch.designSystem
 }
 
 function resolveAll(s: PinState, env: PinEnvironment) {
-  if (!s.designSystem) return new Map<number, ResolvedRow>()
+  // An area has no element of its own to style; its rows wait in the draft.
+  if (!s.designSystem || s.area) return new Map<number, ResolvedRow>()
   const classes = s.element ? env.classes(s.element) : []
   return new Map(s.rows.map((r) => [r.id, resolveRow(r, s.designSystem!, classes, env.isValid)]))
 }

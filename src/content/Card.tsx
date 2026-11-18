@@ -11,6 +11,8 @@ import { onPinspecPaste } from './pasteRouter'
 
 interface Props {
   el: Element
+  /** The pin is a dragged area: no CSS rows, since there's no element of its own to style. */
+  isArea: boolean
   /** Screenshot of the selected element, taken when it was picked. */
   beforeUrl: string
   rect: DOMRect
@@ -137,10 +139,10 @@ export function Card(p: Props) {
             value={p.comment}
             onChange={(e) => p.onComment(e.target.value)}
             rows={3}
-            placeholder="What should change? Type or dictate."
+            placeholder="What should change? Type or dictate (optional)."
             className="field-sizing-content min-h-[76px] w-full resize-none rounded-md border-0 bg-transparent p-1 text-sm leading-relaxed outline-none placeholder:text-muted-foreground"
           />
-          {p.rows.length > 0 && (
+          {!p.isArea && p.rows.length > 0 && (
             <div className="flex flex-col gap-1.5 border-t pt-2">
               {p.rows.map((r) => (
                 <CssRowEditor
@@ -158,26 +160,28 @@ export function Card(p: Props) {
         </div>
       </div>
       <div className="flex items-center gap-1 border-t px-2 py-1.5">
-        <CssPicker
-          el={p.el}
-          ds={p.ds}
-          open={p.pickerOpen}
-          onOpenChange={(open) => {
-            p.onPickerOpen(open)
-            // Closing the picker moves you to the first row still waiting for an after value.
-            if (!open) setFocusRow(p.rows.find((r) => !r.after.trim())?.id ?? null)
-          }}
-          checked={new Set(p.rows.map((r) => r.prop))}
-          onToggle={(prop, on) => {
-            if (on) p.onAddRow(prop)
-            else {
-              const row = p.rows.find((r) => r.prop === prop)
-              if (row) p.onRemoveRow(row.id)
-            }
-          }}
-        />
+        {!p.isArea && (
+          <CssPicker
+            el={p.el}
+            ds={p.ds}
+            open={p.pickerOpen}
+            onOpenChange={(open) => {
+              p.onPickerOpen(open)
+              // Closing the picker moves you to the first row still waiting for an after value.
+              if (!open) setFocusRow(p.rows.find((r) => !r.after.trim())?.id ?? null)
+            }}
+            checked={new Set(p.rows.map((r) => r.prop))}
+            onToggle={(prop, on) => {
+              if (on) p.onAddRow(prop)
+              else {
+                const row = p.rows.find((r) => r.prop === prop)
+                if (row) p.onRemoveRow(row.id)
+              }
+            }}
+          />
+        )}
         <div className="ml-auto">
-          <Tooltip label={p.canCopy ? 'Copy image and finish' : 'Write a comment first'} shortcut="⌘↵">
+          <Tooltip label={p.canCopy ? 'Copy image and finish' : 'Add a comment, an After image or a CSS change first'} shortcut="⌘↵">
             <span tabIndex={p.canCopy ? undefined : 0}>
               <Button size="sm" aria-label="Copy" disabled={!p.canCopy} onClick={p.onCopy}>
                 <Copy className="size-3.5" />

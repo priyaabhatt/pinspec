@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Drag a box while selecting to pin any part of the page, such as a frame on a canvas-drawn board like Figma's. Before is exactly the box.
+- The comment is optional: Copy works once there's a comment, an After image or a CSS change, and an empty comment is left out of the image.
+- The copied image no longer prints captions under Before and After (the element's tag and classes, "Pasted target").
 - Before and After are cropped to exactly the selected element. They used to include 16px around it, which pulled in neighbouring content such as a sidebar's edge.
 - The copied image no longer ends with the agent footer; it's just the element, the changes and your comment.
 - CSS rows read as instructions in the copied image: "Change the width from 232px to w-88 (352px), the nearest step to 350px."

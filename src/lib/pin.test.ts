@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createDesignSystem } from './designSystem'
-import { Pin, type AfterImage, type HandoffInput, type PinEnvironment } from './pin'
+import { Pin, type Area, type AfterImage, type HandoffInput, type PinEnvironment } from './pin'
 import type { Rgba } from './snap'
 
 /** A recording fake of the outside world: no browser needed. */
@@ -8,6 +8,7 @@ function fakeEnvironment(opts: { clipboardFails?: boolean } = {}) {
   const log = {
     previews: [] as { el: Element | null; values: Record<string, string> }[],
     captures: 0,
+    areas: [] as (Area | null)[],
     rendered: [] as HandoffInput[],
     released: [] as string[],
   }
@@ -15,8 +16,9 @@ function fakeEnvironment(opts: { clipboardFails?: boolean } = {}) {
   const ds = createDesignSystem({ spacing: 4, spaces: [], colors: [], radii: [], fontSizes: [], fontWeights: [] }, { parseColor, remPx: 16 })
   const shot = { width: 10, height: 10 } as unknown as HTMLCanvasElement
   const env: PinEnvironment = {
-    capture: async () => {
+    capture: async (_el, area) => {
       log.captures++
+      log.areas.push(area)
       return shot
     },
     designSystem: () => ds,
@@ -125,11 +127,43 @@ describe('live preview', () => {
   })
 })
 
+describe('an area', () => {
+  it('captures just the dragged box and keeps CSS rows out of it', async () => {
+    const { env, log } = fakeEnvironment()
+    const pin = new Pin(env, 'selecting')
+    pin.updateRow(pin.addRow('width'), { after: '350px' })
+    const box = { left: 10, top: 20, width: 300, height: 200 }
+    await pin.pick(element(1200), box)
+    expect(log.areas.at(-1)).toEqual(box)
+    expect(pin.get()).toMatchObject({ stage: 'card', area: box })
+    expect(pin.get().resolved.size).toBe(0)
+    expect(log.previews.at(-1)?.values).toEqual({})
+    pin.setAfter(after('blob:a'))
+    expect(await pin.copy()).toEqual({ ok: true })
+    expect(log.rendered[0]).toMatchObject({ afterSource: 'pasted', changes: [] })
+  })
+
+  it('is let go by Remove, so the next pick is a whole element again', async () => {
+    const { env } = fakeEnvironment()
+    const pin = new Pin(env, 'selecting')
+    await pin.pick(element(1200), { left: 0, top: 0, width: 10, height: 10 })
+    pin.removeElement()
+    await pin.pick(element(232))
+    expect(pin.get().area).toBeNull()
+  })
+})
+
 describe('copy', () => {
-  it('needs an element and a comment', async () => {
+  it('needs an element and something to hand off: a comment, an After or a change', async () => {
     const { pin } = await pinWithElement()
     expect(pin.get().canCopy).toBe(false)
     pin.setComment('wider')
+    expect(pin.get().canCopy).toBe(true)
+    pin.setComment('')
+    pin.setAfter(after('blob:a'))
+    expect(pin.get().canCopy).toBe(true)
+    pin.setAfter(null)
+    pin.updateRow(pin.addRow('width'), { after: '350px' })
     expect(pin.get().canCopy).toBe(true)
     pin.removeElement()
     expect(pin.get().canCopy).toBe(false)
