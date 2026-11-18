@@ -14,12 +14,13 @@ export interface ComposeInput {
 
 const W = 1200
 const PAD = 40
-const GAP = 32
-const COL = (W - PAD * 2 - GAP) / 2
 const SCALE = 2
 // Tall enough that stitched captures of long elements stay readable.
-const MAX_PANEL_H = 1200
-const PANEL_PAD = 20
+const MAX_PICTURE_H = 1160
+/** Room around each picture inside the frame, and above it for the tag. */
+const CELL_PAD = 32
+const TAG_ROOM = 48
+const MIN_FRAME_H = 160
 const BULLET = 32
 const CHANGE_LINE = 32
 const CHANGE_GAP = 8
@@ -32,7 +33,6 @@ const C = {
   muted: '#52525B',
   faint: '#71717A',
   line: '#E4E4E7',
-  panel: '#F4F4F5',
   accent: '#2563EB',
 }
 
@@ -60,25 +60,34 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, width: number): strin
   return out
 }
 
-/** Fit inside the panel; never upscale past 2× CSS size so screenshots stay sharp. */
-function fit(img: { width: number; height: number }, maxW: number, maxH: number) {
-  const cssW = img.width / (window.devicePixelRatio || 1)
-  const cssH = img.height / (window.devicePixelRatio || 1)
-  const s = Math.min(maxW / cssW, maxH / cssH, 2)
-  return { w: cssW * s, h: cssH * s }
+/**
+ * Lay the pictures out side by side in one frame, all at the same scale so
+ * Before and After compare honestly: as large as the frame allows, never past
+ * 2× CSS size so screenshots stay sharp. Each column is as wide as its picture
+ * plus padding, and leftover width is shared out in proportion.
+ */
+function layout(pictures: Picture[], frameW: number) {
+  const dpr = window.devicePixelRatio || 1
+  const css = pictures.map((p) => ({ w: p.width / dpr, h: p.height / dpr }))
+  const room = frameW - pictures.length * CELL_PAD * 2
+  const s = Math.min(2, room / css.reduce((sum, c) => sum + c.w, 0), MAX_PICTURE_H / Math.max(...css.map((c) => c.h)))
+  const sizes = css.map((c) => ({ w: c.w * s, h: c.h * s }))
+  const base = sizes.map((z) => z.w + CELL_PAD * 2)
+  const total = base.reduce((a, b) => a + b, 0)
+  const cols = base.map((b) => (b / total) * frameW)
+  return { sizes, cols, pictureH: Math.max(...sizes.map((z) => z.h)) }
 }
 
 export function compose(input: ComposeInput): HTMLCanvasElement {
   // Measure pass on a scratch context, then draw.
   const scratch = document.createElement('canvas').getContext('2d')!
-  const innerW = COL - PANEL_PAD * 2
-  const innerH = MAX_PANEL_H - PANEL_PAD * 2
-  // With no After the element is the only picture: full width, untagged.
-  const single = !input.after
-  const panelW = single ? W - PAD * 2 : COL
-  const bFit = fit(input.before, panelW - PANEL_PAD * 2, innerH)
-  const aFit = input.after ? fit(input.after, innerW, innerH) : null
-  const panelH = Math.max(160, Math.max(bFit.h, aFit?.h ?? 0) + PANEL_PAD * 2)
+  // With no After the element is the only picture, untagged.
+  const pictures = input.after ? [input.before, input.after] : [input.before]
+  const tags = input.after ? ['before', 'after'] : []
+  const frameW = W - PAD * 2
+  const { sizes, cols, pictureH } = layout(pictures, frameW)
+  const top = tags.length ? TAG_ROOM : CELL_PAD
+  const frameH = Math.max(MIN_FRAME_H, top + pictureH + CELL_PAD)
 
   scratch.font = `400 26px ${SANS}`
   const commentLines = wrap(scratch, input.comment, W - PAD * 2)
@@ -86,8 +95,7 @@ export function compose(input: ComposeInput): HTMLCanvasElement {
   const changeLines = input.changes.map((c) => wrap(scratch, c, W - PAD * 2 - BULLET))
 
   let h = PAD
-  if (!single) h += 22 + 12 // labels
-  h += panelH
+  h += frameH
   if (changeLines.length) h += 44 + 22 + 14 + changeLines.flat().length * CHANGE_LINE + (changeLines.length - 1) * CHANGE_GAP
   if (input.comment) h += 44 + 22 + 14 + commentLines.length * 36
   h += PAD
@@ -110,31 +118,43 @@ export function compose(input: ComposeInput): HTMLCanvasElement {
     ctx.letterSpacing = '0px'
   }
 
-  let y = PAD
-  const xA = PAD + COL + GAP
-
-  // 1. Before | After, or just the element
-  if (!single) {
-    label('Before', PAD, y + 15)
-    label('After', xA, y + 15)
-    y += 22 + 12
-  }
-
-  const panel = (x: number, img: Picture, f: { w: number; h: number }) => {
-    ctx.fillStyle = C.panel
-    ctx.beginPath()
-    ctx.roundRect(x, y, panelW, panelH, 14)
-    ctx.fill()
-    const ix = x + (panelW - f.w) / 2
-    const iy = y + (panelH - f.h) / 2
-    ctx.drawImage(img, ix, iy, f.w, f.h)
+  /** A small boxed tag, like a sticky label on a design frame. */
+  const tag = (text: string, x: number, y: number) => {
+    ctx.font = `600 13px ${SANS}`
+    const w = ctx.measureText(text).width + 14
+    ctx.fillStyle = C.bg
     ctx.strokeStyle = C.line
-    ctx.lineWidth = 1
-    ctx.strokeRect(ix - 0.5, iy - 0.5, f.w + 1, f.h + 1)
+    ctx.beginPath()
+    ctx.roundRect(x + 0.5, y + 0.5, w, 22, 4)
+    ctx.fill()
+    ctx.stroke()
+    ctx.fillStyle = C.ink
+    ctx.fillText(text, x + 7.5, y + 16)
   }
-  panel(PAD, input.before, bFit)
-  if (input.after && aFit) panel(xA, input.after, aFit)
-  y += panelH
+
+  let y = PAD
+
+  // 1. One white frame: Before | After (or just the element), split by a line
+  ctx.strokeStyle = C.line
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.roundRect(PAD + 0.5, y + 0.5, frameW - 1, frameH - 1, 6)
+  ctx.stroke()
+  let x = PAD
+  pictures.forEach((img, i) => {
+    if (i) {
+      ctx.beginPath()
+      ctx.moveTo(x + 0.5, y)
+      ctx.lineTo(x + 0.5, y + frameH)
+      ctx.stroke()
+    }
+    const z = sizes[i]
+    // Centred in the room below the tags.
+    ctx.drawImage(img, x + (cols[i] - z.w) / 2, y + top + (frameH - top - CELL_PAD - z.h) / 2, z.w, z.h)
+    if (tags[i]) tag(tags[i], x + 10, y + 10)
+    x += cols[i]
+  })
+  y += frameH
 
   // 2. Changes, one sentence per CSS row
   if (changeLines.length) {
