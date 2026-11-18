@@ -6,7 +6,8 @@ import { Card } from './Card'
 import { pageEnvironment } from './pinEnvironment'
 import { Selector } from './Selector'
 import { Toolbar } from './Toolbar'
-import { areaRect, useRect } from './useRect'
+import { areaRect } from './area'
+import { useRect } from './useRect'
 
 export function App({ onClose }: { onClose: () => void }) {
   // The pin owns its contents and lifecycle; App renders it and holds UI-only

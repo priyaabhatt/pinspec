@@ -340,6 +340,29 @@ describe('capture', () => {
     await page.close()
   })
 
+  test('a tiny drag is a click, and a drag released over the toolbar still ends', async () => {
+    const { page, ui } = await open('/')
+    const btn = await page.locator('button.btn').first().boundingBox()
+    await page.mouse.move(btn.x + 20, btn.y + 10)
+    await page.mouse.down()
+    await page.mouse.move(btn.x + 40, btn.y + 12, { steps: 3 })
+    await page.mouse.up()
+    await ui('img[alt=Before]').waitFor({ timeout: 20_000 })
+    assert.equal(await ui('button[aria-label="Add CSS property"]').count(), 1, 'a 20×2 drag picks the element')
+
+    await ui('button[aria-label="Select an element"]').click()
+    const card = await page.locator('div.card').first().boundingBox()
+    const bar = await ui('.cursor-grab').boundingBox()
+    await page.mouse.move(card.x + 20, card.y + 10)
+    await page.mouse.down()
+    await page.mouse.move(card.x + 120, card.y + 80, { steps: 3 })
+    await page.mouse.move(bar.x + bar.width / 2, bar.y + bar.height / 2, { steps: 3 })
+    await page.mouse.up()
+    await ui('img[alt=Before]').waitFor({ timeout: 20_000 })
+    assert.equal(await ui('button[aria-label="Add CSS property"]').count(), 0, 'the box was picked')
+    await page.close()
+  })
+
   test('Before is exactly the selected element, with nothing around it', async () => {
     const { page, ui } = await open('/')
     await pick(page, ui, 'button.btn', 0.25)

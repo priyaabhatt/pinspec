@@ -12,6 +12,14 @@ interface Props {
 
 /** How far the pointer moves with the button down before a click becomes a drag. */
 const DRAG_START = 6
+/** A box smaller than this either way is taken as a click. */
+const MIN_BOX = 8
+
+/** The pointer, kept inside the window so a box never runs off screen. */
+const clamp = (x: number, y: number) => ({
+  x: Math.min(Math.max(x, 0), window.innerWidth),
+  y: Math.min(Math.max(y, 0), window.innerHeight),
+})
 
 interface Box {
   x0: number
@@ -58,6 +66,25 @@ export function Selector({ onPick, onCancel }: Props) {
     setTarget(parent)
   }
 
+  /**
+   * The button came up: pick the box, or the element as a click. Listened for
+   * on the window, so a release over the toolbar or outside the page still ends it.
+   */
+  const release = (x: number, y: number) => {
+    press.current = null
+    const r = box && boxRect(box)
+    setBox(null)
+    if (r && r.width >= MIN_BOX && r.height >= MIN_BOX) {
+      const under = elementAt(r.left + r.width / 2, r.top + r.height / 2, getHost())
+      if (!under) return
+      const el = under.getBoundingClientRect()
+      onPick(under, { left: r.left - el.left, top: r.top - el.top, width: r.width, height: r.height })
+    } else {
+      const picked = target ?? elementAt(x, y, getHost())
+      if (picked) onPick(picked, null)
+    }
+  }
+
   const down = () => {
     if (!target) return
     const next = trail.current.pop() ?? childAt(target, point.current?.x ?? null, point.current?.y ?? null)
@@ -71,19 +98,26 @@ export function Selector({ onPick, onCancel }: Props) {
           press.current = null
           setBox(null)
         } else onCancel()
-      }
-      else if (e.key === 'ArrowUp') up()
+      } else if (e.key === 'ArrowUp') up()
       else if (e.key === 'ArrowDown') down()
       else return
       e.preventDefault()
       e.stopPropagation()
     }
-    const onScroll = () => point.current && hitTest(point.current.x, point.current.y)
+    const onScroll = () => !press.current && point.current && hitTest(point.current.x, point.current.y)
+    const onMouseUp = (e: MouseEvent) => {
+      if (e.button !== 0 || !press.current) return
+      e.preventDefault()
+      const p = clamp(e.clientX, e.clientY)
+      release(p.x, p.y)
+    }
     window.addEventListener('keydown', onKey, true)
     window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('mouseup', onMouseUp, true)
     return () => {
       window.removeEventListener('keydown', onKey, true)
       window.removeEventListener('scroll', onScroll, true)
+      window.removeEventListener('mouseup', onMouseUp, true)
     }
   })
 
@@ -98,30 +132,15 @@ export function Selector({ onPick, onCancel }: Props) {
           point.current = { x: e.clientX, y: e.clientY }
           const start = press.current
           if (start && (box || Math.hypot(e.clientX - start.x, e.clientY - start.y) > DRAG_START)) {
-            setBox({ x0: start.x, y0: start.y, x1: e.clientX, y1: e.clientY })
-          } else if (!box) hitTest(e.clientX, e.clientY)
+            const p = clamp(e.clientX, e.clientY)
+            setBox({ x0: start.x, y0: start.y, x1: p.x, y1: p.y })
+          } else if (!start) hitTest(e.clientX, e.clientY)
         }}
         onMouseDown={(e) => {
           e.preventDefault()
           if (e.button === 0) press.current = { x: e.clientX, y: e.clientY }
         }}
-        onMouseUp={(e) => {
-          if (!press.current) return
-          press.current = null
-          if (box) {
-            e.preventDefault()
-            setBox(null)
-            const r = boxRect(box)
-            const under = elementAt(r.left + r.width / 2, r.top + r.height / 2, getHost())
-            if (!under) return
-            const el = under.getBoundingClientRect()
-            onPick(under, { left: r.left - el.left, top: r.top - el.top, width: r.width, height: r.height })
-          } else {
-            const picked = target ?? elementAt(e.clientX, e.clientY, getHost())
-            if (picked) onPick(picked, null)
-          }
-        }}
-        onWheel={() => point.current && requestAnimationFrame(() => hitTest(point.current!.x, point.current!.y))}
+        onWheel={() => !press.current && point.current && requestAnimationFrame(() => hitTest(point.current!.x, point.current!.y))}
       />
       {box && <BoxOutline rect={boxRect(box)} />}
       {!box && target && rect && (

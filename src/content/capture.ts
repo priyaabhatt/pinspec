@@ -2,7 +2,7 @@
 
 import type { Area } from '@/lib/pin'
 import { getHost } from './env'
-import { areaRect } from './useRect'
+import { areaRect } from './area'
 
 function nextFrame() {
   return new Promise<void>((r) => requestAnimationFrame(() => r()))
@@ -170,7 +170,7 @@ async function captureTall(el: Element): Promise<HTMLCanvasElement> {
 }
 
 export async function captureElement(el: Element, area: Area | null): Promise<HTMLCanvasElement> {
-  // A dragged area was drawn on screen, so it's always in view.
+  // An area was drawn inside the window; cropToElement clamps it if the page scrolled since.
   if (area) return cropToElement(await captureVisible(), areaRect(el.getBoundingClientRect(), area))
   const r = el.getBoundingClientRect()
   const band = bandFor(scrollerFor(el))

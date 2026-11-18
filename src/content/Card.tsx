@@ -142,6 +142,11 @@ export function Card(p: Props) {
             placeholder="What should change? Type or dictate (optional)."
             className="field-sizing-content min-h-[76px] w-full resize-none rounded-md border-0 bg-transparent p-1 text-sm leading-relaxed outline-none placeholder:text-muted-foreground"
           />
+          {p.isArea && p.rows.length > 0 && (
+            <p className="border-t px-1 pt-2 text-xs text-muted-foreground">
+              CSS rows don't apply to a box; they're kept for the next element you pick.
+            </p>
+          )}
           {!p.isArea && p.rows.length > 0 && (
             <div className="flex flex-col gap-1.5 border-t pt-2">
               {p.rows.map((r) => (
