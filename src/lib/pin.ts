@@ -35,9 +35,6 @@ export interface AfterImage {
 export interface HandoffInput {
   before: HTMLCanvasElement
   after: Picture | null
-  /** Where the After came from: pasted, the live preview, or nothing. */
-  afterSource: 'pasted' | 'live preview' | 'none'
-  element: Element
   /** Each CSS row as a sentence. */
   changes: string[]
   comment: string
@@ -62,7 +59,9 @@ export interface PinEnvironment {
   /** Free a pasted After image. */
   release(after: AfterImage): void
   /** A screenshot as an After image the card can show. */
-  asAfter(shot: HTMLCanvasElement): AfterImage
+  asAfter(shot: HTMLCanvasElement): Promise<AfterImage>
+  /** A pasted image as a Before; the pasted image is freed. */
+  asBefore(image: AfterImage): HTMLCanvasElement
 }
 
 export interface PinState {
@@ -126,16 +125,17 @@ export class Pin {
     return () => this.listeners.delete(fn)
   }
 
-  /** The pointer button: start selecting, or cancel selecting (keeping the draft). */
+  /** The pointer button: start selecting, or cancel selecting (keeping the draft), or stop selecting for a slot. */
   toggleSelecting() {
     if (this.state.stage === 'selecting') this.cancelSelecting()
+    else if (this.state.stage === 'grabbing') this.cancelGrab()
     else this.removeElement()
   }
 
   /** Remove: let go of the element and go back to selecting. The draft is kept. */
   removeElement() {
     this.generation++
-    this.set({ stage: 'selecting', element: null, area: null, before: null })
+    this.set({ stage: 'selecting', element: null, area: null, before: null, grabbing: null })
   }
 
   /** Esc or the pointer button while selecting. The draft waits for the next pick. */
@@ -194,11 +194,19 @@ export class Pin {
     try {
       const shot = await this.env.capture(el, area)
       if (generation !== this.generation) return { ok: false, error: null }
-      if (slot === 'before') this.set({ stage: 'card', grabbing: null, before: shot })
-      else {
-        this.setAfter(this.env.asAfter(shot))
-        this.set({ stage: 'card', grabbing: null })
+      if (slot === 'before') {
+        // A new Before is a new subject: the CSS rows and the live preview follow it.
+        const rows = this.state.rows.map((r) => ({ ...r, before: this.env.readValue(el, r.prop) }))
+        this.set({ stage: 'card', grabbing: null, element: el, area, before: shot, rows, designSystem: this.env.designSystem() })
+        return { ok: true }
       }
+      const after = await this.env.asAfter(shot)
+      if (generation !== this.generation) {
+        this.env.release(after)
+        return { ok: false, error: null }
+      }
+      this.setAfter(after)
+      this.set({ stage: 'card', grabbing: null })
       return { ok: true }
     } catch (err) {
       if (generation !== this.generation) return { ok: false, error: null }
@@ -212,22 +220,25 @@ export class Pin {
   }
 
   /**
-   * Paste an After image that takes a moment to load. If the pin moves on
-   * meanwhile (Remove, Discard, a new pick), the image is freed, not attached.
+   * Paste an image that takes a moment to load into the first empty slot. If
+   * the pin moves on meanwhile (Remove, Discard, a new pick), it's freed, not attached.
    */
-  async pasteAfter(load: () => Promise<AfterImage>): Promise<Outcome> {
+  async pasteImage(load: () => Promise<AfterImage>): Promise<Outcome> {
+    // The first empty slot: Before if it was cleared, else After.
+    const slot = this.state.before ? 'after' : 'before'
     const generation = this.generation
-    let after: AfterImage
+    let image: AfterImage
     try {
-      after = await load()
+      image = await load()
     } catch {
       return { ok: false, error: "That image couldn't be read" }
     }
     if (generation !== this.generation || this.state.stage !== 'card') {
-      this.env.release(after)
+      this.env.release(image)
       return { ok: false, error: null }
     }
-    this.setAfter(after)
+    if (slot === 'before') this.set({ before: this.env.asBefore(image) })
+    else this.setAfter(image)
     return { ok: true }
   }
 
@@ -262,6 +273,7 @@ export class Pin {
     const s = this.state
     const el = s.element!
     const changes = s.rows.flatMap((r) => s.resolved.get(r.id)?.handoff ?? [])
+    const generation = this.generation
     this.set({ busy: true })
     const png = (async () => {
       // No pasted After: the live preview, captured, becomes the After.
@@ -269,15 +281,15 @@ export class Pin {
       return this.env.render({
         before: s.before!,
         after,
-        afterSource: s.after ? 'pasted' : changes.length ? 'live preview' : 'none',
-        element: el,
         changes,
         comment: s.comment,
       })
     })()
     try {
       await this.env.writeImage(png)
-      this.discard()
+      // Overtaken while copying (Esc, Remove, a new pin): the copy still landed; leave the newer pin be.
+      if (generation === this.generation) this.discard()
+      else this.set({ busy: false })
       return { ok: true }
     } catch (err) {
       this.set({ busy: false })
@@ -305,10 +317,11 @@ export class Pin {
     this.emit()
   }
 
-  /** The live preview shows while the card is open or the element is being captured. */
+  /** The live preview shows while the card is open, the element is being captured, or an After is being grabbed. */
   private syncPreview() {
     const s = this.state
-    const showing = s.stage === 'card' || s.stage === 'capturing' || s.stage === 'grabbing'
+    // While grabbing a Before the page shows as it is, so the Before isn't the change.
+    const showing = s.stage === 'card' || s.stage === 'capturing' || (s.stage === 'grabbing' && s.grabbing === 'after')
     const values = new Map<string, string>()
     if (showing && s.element) {
       for (const r of s.rows) {

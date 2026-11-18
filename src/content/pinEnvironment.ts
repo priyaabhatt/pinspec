@@ -31,6 +31,14 @@ export function pageEnvironment(): PinEnvironment {
     // across the async capture and compose.
     writeImage: (png) => navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]),
     release: (after) => URL.revokeObjectURL(after.url),
-    asAfter: (shot) => ({ url: shot.toDataURL('image/png'), img: shot }),
+    asAfter: async (shot) => ({ url: URL.createObjectURL(await toPng(shot)), img: shot }),
+    asBefore: (image) => {
+      const canvas = document.createElement('canvas')
+      canvas.width = image.img.width
+      canvas.height = image.img.height
+      canvas.getContext('2d')!.drawImage(image.img, 0, 0)
+      URL.revokeObjectURL(image.url)
+      return canvas
+    },
   }
 }

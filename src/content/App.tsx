@@ -53,9 +53,9 @@ export function App({ onClose }: { onClose: () => void }) {
     pin.toggleSelecting()
   }
 
-  /** A pasted image fills Before if it was removed, else After. */
+  /** A pasted image fills the first empty slot: Before if it was cleared, else After. */
   const pasteImage = async (file: File) => {
-    const load = async () => {
+    const outcome = await pin.pasteImage(async () => {
       const url = URL.createObjectURL(file)
       try {
         return { url, img: await loadImage(url) }
@@ -63,18 +63,7 @@ export function App({ onClose }: { onClose: () => void }) {
         URL.revokeObjectURL(url)
         throw err
       }
-    }
-    if (!pin.get().before) {
-      try {
-        const { url, img } = await load()
-        pin.setBefore(toCanvas(img))
-        URL.revokeObjectURL(url)
-      } catch {
-        flash("That image couldn't be read", 'error')
-      }
-      return
-    }
-    const outcome = await pin.pasteAfter(load)
+    })
     if (!outcome.ok && outcome.error) flash(outcome.error, 'error')
   }
 
@@ -135,7 +124,7 @@ export function App({ onClose }: { onClose: () => void }) {
         </>
       )}
       <Toolbar
-        selecting={stage === 'selecting'}
+        selecting={stage === 'selecting' || stage === 'grabbing'}
         toast={toast}
         onSelect={toggleSelecting}
         onClose={() => {
@@ -145,13 +134,4 @@ export function App({ onClose }: { onClose: () => void }) {
       />
     </TooltipProvider>
   )
-}
-
-/** A loaded image as a canvas, the form a Before takes. */
-function toCanvas(img: HTMLImageElement) {
-  const canvas = document.createElement('canvas')
-  canvas.width = img.naturalWidth
-  canvas.height = img.naturalHeight
-  canvas.getContext('2d')!.drawImage(img, 0, 0)
-  return canvas
 }

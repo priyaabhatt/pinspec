@@ -36,7 +36,8 @@ function fakeEnvironment(opts: { clipboardFails?: boolean } = {}) {
       if (opts.clipboardFails) throw new Error('blocked')
     },
     release: (after) => log.released.push(after.url),
-    asAfter: (img) => ({ url: 'data:shot', img }),
+    asAfter: async (img) => ({ url: 'blob:shot', img }),
+    asBefore: (image) => image.img as HTMLCanvasElement,
   }
   return { env, log }
 }
@@ -141,7 +142,8 @@ describe('an area', () => {
     expect(log.previews.at(-1)?.values).toEqual({})
     pin.setAfter(after('blob:a'))
     expect(await pin.copy()).toEqual({ ok: true })
-    expect(log.rendered[0]).toMatchObject({ afterSource: 'pasted', changes: [] })
+    expect(log.rendered[0]).toMatchObject({ changes: [] })
+    expect(log.rendered[0].after).not.toBeNull()
   })
 
   it('is let go by Remove, so the next pick is a whole element again', async () => {
@@ -171,12 +173,12 @@ describe('filling a slot', () => {
     const box = { left: 0, top: 0, width: 50, height: 40 }
     expect(await pin.grab(element(900), box)).toEqual({ ok: true })
     expect(log.areas.at(-1)).toEqual(box)
-    expect(pin.get()).toMatchObject({ stage: 'card', grabbing: null, after: { url: 'data:shot' } })
+    expect(pin.get()).toMatchObject({ stage: 'card', grabbing: null, after: { url: 'blob:shot' } })
     pin.clearBefore()
     pin.startGrab('before')
     await pin.grab(element(900))
     expect(pin.get().before).not.toBeNull()
-    expect(pin.get().element).toMatchObject({ width: 232 })
+    expect(pin.get().element).toMatchObject({ width: 900 })
   })
 
   it('goes back to the card unchanged on Esc', async () => {
@@ -185,6 +187,68 @@ describe('filling a slot', () => {
     pin.startGrab('before')
     pin.cancelGrab()
     expect(pin.get()).toMatchObject({ stage: 'card', grabbing: null, before })
+  })
+})
+
+describe('review regressions', () => {
+  it('a copy that finishes after the pin moved on leaves the newer pin alone', async () => {
+    const { env } = fakeEnvironment()
+    let release!: () => void
+    env.writeImage = (png) => new Promise((r) => (release = () => png.then(() => r())))
+    const pin = new Pin(env, 'selecting')
+    await pin.pick(element(232))
+    pin.setComment('first')
+    const copying = pin.copy()
+    pin.removeElement()
+    await pin.pick(element(300))
+    pin.setComment('second')
+    release()
+    expect(await copying).toEqual({ ok: true })
+    expect(pin.get()).toMatchObject({ stage: 'card', comment: 'second', busy: false, canCopy: true })
+  })
+
+  it('shows the page as it is while grabbing a Before, and the preview while grabbing an After', async () => {
+    const { pin, log } = await pinWithElement()
+    pin.updateRow(pin.addRow('width'), { after: '400px' })
+    pin.clearBefore()
+    pin.startGrab('before')
+    expect(log.previews.at(-1)).toEqual({ el: null, values: {} })
+    pin.cancelGrab()
+    pin.startGrab('after')
+    expect(log.previews.at(-1)?.values).toEqual({ width: '400px' })
+  })
+
+  it('a grabbed Before becomes the subject: rows re-read their before value from it', async () => {
+    const { pin } = await pinWithElement()
+    pin.addRow('width')
+    pin.startGrab('before')
+    await pin.grab(element(500))
+    expect(pin.get().element).toMatchObject({ width: 500 })
+    expect(pin.get().rows[0].before).toBe('500px')
+  })
+
+  it('a pasted image fills an empty Before first, and a slow one is dropped if the pin moved on', async () => {
+    const { pin, log } = await pinWithElement()
+    pin.clearBefore()
+    await pin.pasteImage(async () => after('blob:p'))
+    expect(pin.get().before).not.toBeNull()
+    expect(pin.get().after).toBeNull()
+    pin.clearBefore()
+    let done!: (a: AfterImage) => void
+    const pasting = pin.pasteImage(() => new Promise((r) => (done = r)))
+    pin.removeElement()
+    done(after('blob:late'))
+    expect(await pasting).toEqual({ ok: false, error: null })
+    expect(log.released).toContain('blob:late')
+    expect(pin.get().before).toBeNull()
+  })
+
+  it('the pointer button while grabbing goes back to the card instead of removing the element', async () => {
+    const { pin } = await pinWithElement()
+    pin.startGrab('after')
+    pin.toggleSelecting()
+    expect(pin.get()).toMatchObject({ stage: 'card', grabbing: null })
+    expect(pin.get().element).not.toBeNull()
   })
 })
 
@@ -209,7 +273,8 @@ describe('copy', () => {
     pin.setComment('wider')
     pin.updateRow(pin.addRow('width'), { after: '350px' })
     expect(await pin.copy()).toEqual({ ok: true })
-    expect(log.rendered[0]).toMatchObject({ afterSource: 'live preview', comment: 'wider' })
+    expect(log.rendered[0]).toMatchObject({ comment: 'wider' })
+    expect(log.rendered[0].after).not.toBeNull()
     expect(log.rendered[0].changes).toEqual(['Change the width from 232px to w-88 (352px), the nearest step to 350px.'])
     expect(pin.get()).toMatchObject({ stage: 'idle', element: null, comment: '', rows: [] })
     expect(log.previews.at(-1)).toEqual({ el: null, values: {} })
@@ -222,7 +287,7 @@ describe('copy', () => {
     const captures = log.captures
     await pin.copy()
     expect(log.captures).toBe(captures)
-    expect(log.rendered[0].afterSource).toBe('pasted')
+    expect(log.rendered[0].after).toEqual({ width: 1, height: 1 })
     expect(log.released).toEqual(['blob:b'])
   })
 
@@ -318,7 +383,7 @@ describe('pasting an After that takes a moment to load', () => {
   it('attaches it when the card is still open', async () => {
     const { pin } = await pinWithElement()
     const { load, finish } = slowLoad()
-    const pasting = pin.pasteAfter(load)
+    const pasting = pin.pasteImage(load)
     finish(after('blob:ok'))
     expect(await pasting).toEqual({ ok: true })
     expect(pin.get().after?.url).toBe('blob:ok')
@@ -327,7 +392,7 @@ describe('pasting an After that takes a moment to load', () => {
   it('frees it when the pin was discarded meanwhile, even after a new pick', async () => {
     const { pin, log } = await pinWithElement()
     const { load, finish } = slowLoad()
-    const pasting = pin.pasteAfter(load)
+    const pasting = pin.pasteImage(load)
     pin.discard()
     await pin.pick(element(100))
     finish(after('blob:late'))
@@ -338,6 +403,6 @@ describe('pasting an After that takes a moment to load', () => {
 
   it('reports an image that can’t be read', async () => {
     const { pin } = await pinWithElement()
-    expect(await pin.pasteAfter(() => Promise.reject(new Error('bad')))).toEqual({ ok: false, error: "That image couldn't be read" })
+    expect(await pin.pasteImage(() => Promise.reject(new Error('bad')))).toEqual({ ok: false, error: "That image couldn't be read" })
   })
 })

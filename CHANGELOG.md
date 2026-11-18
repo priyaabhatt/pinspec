@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Drag a box while selecting to pin any part of the page, such as a frame on a canvas-drawn board like Figma's. Before is exactly the box.
+- Hover the Before or After and click ✕ to clear it. An empty slot takes a pasted image (⌘V fills Before first, then After) or **Select on page**, which sets the card aside while you click or drag on the page.
 - The comment is optional: Copy works once there's a comment, an After image or a CSS change, and an empty comment is left out of the image.
 - The copied image no longer prints captions under Before and After (the element's tag and classes, "Pasted target").
 - Before and After are cropped to exactly the selected element. They used to include 16px around it, which pulled in neighbouring content such as a sidebar's edge.

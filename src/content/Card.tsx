@@ -39,6 +39,7 @@ interface Props {
   onCopy: () => void
 }
 
+const MAC = /Mac|iPhone|iPad/.test(navigator.platform)
 const CARD_W = 560
 const MARGIN = 10
 /** Room kept free at the bottom for the floating toolbar. */
@@ -75,10 +76,10 @@ export function Card(p: Props) {
 
   const pos = place(p.rect, height)
 
-  /** Run an action whose button disappears, keeping focus in the card so the next ⌘V still lands here. */
+  /** Run an action whose button disappears, moving focus to the comment so the next ⌘V still lands in the card. */
   const keepFocus = (action: () => void) => {
     action()
-    ref.current?.focus({ preventScroll: true })
+    commentRef.current?.focus({ preventScroll: true })
   }
 
   // ⌘V anywhere in pinspec while the card is open (the card, the { } picker,
@@ -131,7 +132,7 @@ export function Card(p: Props) {
         if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && p.canCopy) {
           e.preventDefault()
           p.onCopy()
-        } else if (e.key === 'Backspace' && !(e.target as Element).closest('input, textarea')) {
+        } else if (e.key === 'Backspace' && !(e.target as Element).closest('input, textarea, button')) {
           e.preventDefault()
           p.onRemove()
         }
@@ -144,12 +145,12 @@ export function Card(p: Props) {
           {p.beforeUrl ? (
             <FilledSlot url={p.beforeUrl} label="Before" tagged={!!p.after} onClear={() => keepFocus(p.onClearBefore)} />
           ) : (
-            <EmptySlot label="Before" onGrab={() => p.onGrab('before')} />
+            <EmptySlot label="Before" busy={p.busy} onGrab={() => p.onGrab('before')} />
           )}
           {p.after ? (
             <FilledSlot url={p.after.url} label="After" tagged onClear={() => keepFocus(p.onClearAfter)} />
           ) : (
-            <EmptySlot label="After" onGrab={() => p.onGrab('after')} />
+            <EmptySlot label="After" busy={p.busy} onGrab={() => p.onGrab('after')} />
           )}
         </div>
         <div className="flex min-w-0 flex-col gap-2">
@@ -205,7 +206,7 @@ export function Card(p: Props) {
           />
         )}
         <div className="ml-auto">
-          <Tooltip label={p.canCopy ? 'Copy image and finish' : 'Add a comment, an After image or a CSS change first'} shortcut="⌘↵">
+          <Tooltip label={p.canCopy ? 'Copy image and finish' : 'Add a comment, an After image or a CSS change first'} shortcut={MAC ? '⌘↵' : 'Ctrl+↵'}>
             <span tabIndex={p.canCopy ? undefined : 0}>
               <Button size="sm" aria-label="Copy" disabled={!p.canCopy} onClick={p.onCopy}>
                 <Copy className="size-3.5" />
@@ -237,7 +238,7 @@ function FilledSlot({ url, label, tagged, onClear }: { url: string; label: 'Befo
       {tagged && <SlotLabel>{label}</SlotLabel>}
       <button
         type="button"
-        aria-label={`Remove ${label.toLowerCase()} image`}
+        aria-label={`Clear ${label.toLowerCase()} image`}
         onClick={onClear}
         className="absolute top-3 right-3 rounded-full bg-background/90 p-1 text-muted-foreground opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:text-foreground focus-visible:opacity-100"
       >
@@ -248,15 +249,15 @@ function FilledSlot({ url, label, tagged, onClear }: { url: string; label: 'Befo
 }
 
 /** An empty slot: paste an image into it, or select something on the page. */
-function EmptySlot({ label, onGrab }: { label: 'Before' | 'After'; onGrab: () => void }) {
+function EmptySlot({ label, busy, onGrab }: { label: 'Before' | 'After'; busy: boolean; onGrab: () => void }) {
   return (
     <div className={cn(SLOT, 'flex-col gap-1.5 border-dashed bg-muted/50 text-center text-muted-foreground')}>
       <ImagePlus className="size-5" />
       <div className="text-xs font-medium">Paste {label.toLowerCase()} image</div>
       <div className="flex items-center gap-1.5">
-        <kbd className="rounded border bg-background px-1.5 py-0.5 font-sans text-[11px]">⌘V</kbd>
+        <kbd className="rounded border bg-background px-1.5 py-0.5 font-sans text-[11px]">{MAC ? '⌘V' : 'Ctrl+V'}</kbd>
         <span className="text-[11px]">or</span>
-        <Button variant="outline" size="sm" className="h-6 px-2 text-[11px]" onClick={onGrab}>
+        <Button variant="outline" size="sm" className="h-6 px-2 text-[11px]" disabled={busy} onClick={onGrab}>
           <Crosshair className="size-3" />
           Select on page
         </Button>

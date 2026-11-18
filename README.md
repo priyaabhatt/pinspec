@@ -45,7 +45,7 @@ To update, run `git -C ~/pinspec-extension pull` and click ↻ on pinspec's card
 1. Click the pinspec icon or press **⌥⇧P** (**Alt+Shift+P** on Windows and Linux). The toolbar appears and selection starts. The same shortcut turns pinspec off; change it at `chrome://extensions/shortcuts`.
 2. Hover and click the element to change. The label shows where you are (`div.card › button.btn`). **↑** selects the parent, **↓** steps back down or into the child under the pointer, **Esc** cancels selecting. To select part of something that isn't its own element, such as a frame in Figma or anything drawn on a canvas, drag a box instead.
 3. Write or dictate what should change. The comment is optional when the After or a CSS change says it all.
-4. Optional: press **⌘V** in the card to paste an After image.
+4. Optional: press **⌘V** in the card to paste an After image, or click **Select on page** to take it from the page. Hover either image and click its ✕ to clear it; a paste or Select on page fills it again.
 5. Optional: click **{ }**, tick properties, then type their after values.
 6. Click **Copy** (or press **⌘↵**) and paste the image into Codex, Claude Code or Cursor.
 
@@ -56,7 +56,7 @@ Esc while the card is open discards the pin; the toolbar's ✕ turns pinspec off
 | Section | Contents |
 | --- | --- |
 | Before | The selected element or dragged box, cropped exactly. Untagged and full width when there's no After |
-| After | Your pasted image, or the live preview of your CSS changes. Left out when you've pasted nothing and changed no CSS |
+| After | Your pasted or grabbed image, or the live preview of your CSS changes. Left out when you've pasted nothing and changed no CSS |
 | Changes | Each CSS row as a sentence, e.g. "Change the width from 232px to w-88 (352px), the nearest step to 350px." |
 | Comment | Your comment, as typed or dictated. Left out when empty |
 

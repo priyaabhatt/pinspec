@@ -302,7 +302,7 @@ describe('slots', () => {
     await pick(page, ui, 'button.btn', 0.25)
     await page.keyboard.type('x')
     await ui('img[alt=Before]').hover()
-    await ui('button[aria-label="Remove before image"]').click()
+    await ui('button[aria-label="Clear before image"]').click()
     assert.equal(await ui('img[alt=Before]').count(), 0)
     assert.equal(await ui('button[aria-label="Copy"]').isDisabled(), true, 'Copy waits for a Before')
 
@@ -330,6 +330,23 @@ describe('slots', () => {
     await page.mouse.up()
     await ui('img[alt=After]').waitFor({ timeout: 20_000 })
     assert.equal(await ui('textarea').inputValue(), 'x', 'the comment survives')
+    await page.close()
+  })
+
+  test('double-clicking Select on page waits for a real pick, and Backspace after ✕ keeps the pin', async () => {
+    const { page, ui } = await open('/')
+    await pick(page, ui, 'button.btn', 0.25)
+    await ui('button:has-text("Select on page")').dblclick()
+    await page.waitForTimeout(400)
+    assert.equal(await ui('img[alt=After]').count(), 0, 'the second click did not pick')
+    await key(page, 'Escape')
+    await ui('textarea').waitFor({ timeout: 5000 })
+    await ui('img[alt=Before]').hover()
+    await ui('button[aria-label="Clear before image"]').click()
+    await page.keyboard.type('ab')
+    await page.keyboard.press('Backspace')
+    assert.equal(await ui('textarea').inputValue(), 'a', 'focus went to the comment')
+    assert.equal(await ui('textarea').count(), 1, 'the pin is still open')
     await page.close()
   })
 
