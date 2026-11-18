@@ -43,8 +43,8 @@ To update, run `git -C ~/pinspec-extension pull` and click ↻ on pinspec's card
 ## Usage
 
 1. Click the pinspec icon or press **⌥⇧P** (**Alt+Shift+P** on Windows and Linux). The toolbar appears and selection starts. The same shortcut turns pinspec off; change it at `chrome://extensions/shortcuts`.
-2. Hover and click the element to change. The label shows where you are (`div.card › button.btn`). **↑** selects the parent, **↓** steps back down or into the child under the pointer, **Esc** cancels selecting.
-3. Write or dictate what should change. The comment is required.
+2. Hover and click the element to change. The label shows where you are (`div.card › button.btn`). **↑** selects the parent, **↓** steps back down or into the child under the pointer, **Esc** cancels selecting. To select part of something that isn't its own element, such as a frame in Figma or anything drawn on a canvas, drag a box instead.
+3. Write or dictate what should change. The comment is optional when the After or a CSS change says it all.
 4. Optional: press **⌘V** in the card to paste an After image.
 5. Optional: click **{ }**, tick properties, then type their after values.
 6. Click **Copy** (or press **⌘↵**) and paste the image into Codex, Claude Code or Cursor.
@@ -55,15 +55,15 @@ Esc while the card is open discards the pin; the toolbar's ✕ turns pinspec off
 
 | Section | Contents |
 | --- | --- |
-| Before | The selected element, cropped to its own box, plus its tag, classes and text. Untagged and full width when there's no After |
+| Before | The selected element or dragged box, cropped exactly. Untagged and full width when there's no After |
 | After | Your pasted image, or the live preview of your CSS changes. Left out when you've pasted nothing and changed no CSS |
 | Changes | Each CSS row as a sentence, e.g. "Change the width from 232px to w-88 (352px), the nearest step to 350px." |
-| Comment | Your comment, as typed or dictated |
+| Comment | Your comment, as typed or dictated. Left out when empty |
 
 ## Features
 
 - **Works on any page:** production, Vercel previews and localhost. It reads the rendered page; no source code or dev install needed.
-- **Precise selection:** hover to highlight, ↑ and ↓ to move between parent and child, click to pick. Icons and elements under invisible overlays are easy to reach.
+- **Precise selection:** hover to highlight, ↑ and ↓ to move between parent and child, click to pick, or drag a box around any part of the page. Icons, elements under invisible overlays and frames drawn on a canvas are easy to reach.
 - **Before and After:** the element is captured automatically; paste the target image with ⌘V.
 - **CSS rows:** tick the properties you want to change and type the new values. They're applied live on the page.
 - **Snapped to the design system:** reads Tailwind v4 and shadcn tokens from the page, so `350px` becomes `w-88` and `#6B7280` becomes `text-muted-foreground`. Sites with their own names (`--space-4`, `--brand-primary`) snap to `var(--space-4)`. Mark any row **exact** to keep your value.

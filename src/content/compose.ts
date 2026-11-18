@@ -6,12 +6,9 @@ import type { Picture } from '@/lib/pin'
 export interface ComposeInput {
   before: Picture
   after: Picture | null
-  /** Short identification of the element: tag, classes, text. */
-  caption: string
-  /** Where the After came from, e.g. "Live preview of the changes below". */
-  afterCaption: string
   /** Each CSS row as a sentence. */
   changes: string[]
+  /** Left out of the image when empty. */
   comment: string
 }
 
@@ -28,7 +25,6 @@ const CHANGE_LINE = 32
 const CHANGE_GAP = 8
 
 const SANS = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
-const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace'
 
 const C = {
   bg: '#FFFFFF',
@@ -64,13 +60,6 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, width: number): strin
   return out
 }
 
-function ellipsize(ctx: CanvasRenderingContext2D, text: string, width: number) {
-  if (ctx.measureText(text).width <= width) return text
-  let t = text
-  while (t.length > 1 && ctx.measureText(t + '…').width > width) t = t.slice(0, -1)
-  return t + '…'
-}
-
 /** Fit inside the panel; never upscale past 2× CSS size so screenshots stay sharp. */
 function fit(img: { width: number; height: number }, maxW: number, maxH: number) {
   const cssW = img.width / (window.devicePixelRatio || 1)
@@ -97,10 +86,10 @@ export function compose(input: ComposeInput): HTMLCanvasElement {
   const changeLines = input.changes.map((c) => wrap(scratch, c, W - PAD * 2 - BULLET))
 
   let h = PAD
-  h += (single ? 0 : 22) + 26 + 12 // labels + caption
+  if (!single) h += 22 + 12 // labels
   h += panelH
   if (changeLines.length) h += 44 + 22 + 14 + changeLines.flat().length * CHANGE_LINE + (changeLines.length - 1) * CHANGE_GAP
-  h += 44 + 22 + 14 + commentLines.length * 36
+  if (input.comment) h += 44 + 22 + 14 + commentLines.length * 36
   h += PAD
 
   const canvas = document.createElement('canvas')
@@ -128,13 +117,8 @@ export function compose(input: ComposeInput): HTMLCanvasElement {
   if (!single) {
     label('Before', PAD, y + 15)
     label('After', xA, y + 15)
-    y += 22
+    y += 22 + 12
   }
-  ctx.font = `400 15px ${MONO}`
-  ctx.fillStyle = C.muted
-  ctx.fillText(ellipsize(ctx, input.caption, panelW), PAD, y + 18)
-  if (!single) ctx.fillText(ellipsize(ctx, input.afterCaption, COL), xA, y + 18)
-  y += 26 + 12
 
   const panel = (x: number, img: Picture, f: { w: number; h: number }) => {
     ctx.fillStyle = C.panel
@@ -170,15 +154,17 @@ export function compose(input: ComposeInput): HTMLCanvasElement {
     })
   }
 
-  // 3. Comment
-  y += 44
-  label('Comment', PAD, y + 15)
-  y += 22 + 14
-  ctx.font = `400 26px ${SANS}`
-  ctx.fillStyle = C.ink
-  for (const line of commentLines) {
-    ctx.fillText(line, PAD, y + 27)
-    y += 36
+  // 3. Comment, when there is one
+  if (input.comment) {
+    y += 44
+    label('Comment', PAD, y + 15)
+    y += 22 + 14
+    ctx.font = `400 26px ${SANS}`
+    ctx.fillStyle = C.ink
+    for (const line of commentLines) {
+      ctx.fillText(line, PAD, y + 27)
+      y += 36
+    }
   }
 
   return canvas

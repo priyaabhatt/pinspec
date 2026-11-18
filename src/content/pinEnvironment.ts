@@ -4,7 +4,6 @@
 import type { PinEnvironment } from '@/lib/pin'
 import { captureElement } from './capture'
 import { compose, toPng } from './compose'
-import { caption } from './describe'
 import { tidy } from './comment'
 import { LivePreview } from './livePreview'
 import { classList, readValue } from './styles'
@@ -24,8 +23,6 @@ export function pageEnvironment(): PinEnvironment {
         compose({
           before: h.before,
           after: h.after,
-          caption: caption(h.element),
-          afterCaption: { pasted: 'Pasted target', 'live preview': 'Live preview of the changes below', none: '' }[h.afterSource],
           changes: h.changes,
           comment: tidy(h.comment),
         }),

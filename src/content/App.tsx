@@ -1,21 +1,23 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { Pin } from '@/lib/pin'
+import { Pin, type Area } from '@/lib/pin'
 import { loadImage } from './capture'
 import { Card } from './Card'
 import { pageEnvironment } from './pinEnvironment'
 import { Selector } from './Selector'
 import { Toolbar } from './Toolbar'
+import { areaRect } from './area'
 import { useRect } from './useRect'
 
 export function App({ onClose }: { onClose: () => void }) {
   // The pin owns its contents and lifecycle; App renders it and holds UI-only
   // state (the picker, the toast). Activating pinspec starts selecting.
   const [pin] = useState(() => new Pin(pageEnvironment(), 'selecting'))
-  const { stage, element: el, before, comment, after, rows, resolved, designSystem, busy, canCopy } = useSyncExternalStore(pin.subscribe, pin.get)
+  const { stage, element: el, area, before, comment, after, rows, resolved, designSystem, busy, canCopy } = useSyncExternalStore(pin.subscribe, pin.get)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [toast, setToast] = useState<{ text: string; tone: 'ok' | 'error' } | null>(null)
-  const rect = useRect(stage === 'card' ? el : null)
+  const elRect = useRect(stage === 'card' ? el : null)
+  const rect = elRect && area ? areaRect(elRect, area) : elRect
   const beforeUrl = useMemo(() => before?.toDataURL('image/png') ?? '', [before])
 
   const flash = useCallback((text: string, tone: 'ok' | 'error' = 'ok') => {
@@ -41,8 +43,8 @@ export function App({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener('keydown', onKey, true)
   }, [stage, pickerOpen, discard])
 
-  const pick = async (target: Element) => {
-    const outcome = await pin.pick(target)
+  const pick = async (target: Element, box: Area | null) => {
+    const outcome = await pin.pick(target, box)
     if (!outcome.ok && outcome.error) flash(outcome.error, 'error')
   }
 
@@ -83,6 +85,7 @@ export function App({ onClose }: { onClose: () => void }) {
           />
           <Card
             el={el}
+            isArea={!!area}
             beforeUrl={beforeUrl}
             rect={rect}
             ds={designSystem}

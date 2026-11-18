@@ -1,6 +1,8 @@
 // Screenshots via chrome.tabs.captureVisibleTab, cropped to an element.
 
+import type { Area } from '@/lib/pin'
 import { getHost } from './env'
+import { areaRect } from './area'
 
 function nextFrame() {
   return new Promise<void>((r) => requestAnimationFrame(() => r()))
@@ -167,7 +169,9 @@ async function captureTall(el: Element): Promise<HTMLCanvasElement> {
   return out
 }
 
-export async function captureElement(el: Element): Promise<HTMLCanvasElement> {
+export async function captureElement(el: Element, area: Area | null): Promise<HTMLCanvasElement> {
+  // An area was drawn inside the window; cropToElement clamps it if the page scrolled since.
+  if (area) return cropToElement(await captureVisible(), areaRect(el.getBoundingClientRect(), area))
   const r = el.getBoundingClientRect()
   const band = bandFor(scrollerFor(el))
   if (r.height > band.bottom - band.top) return captureTall(el)

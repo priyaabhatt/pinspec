@@ -200,12 +200,16 @@ describe('pin flow', () => {
     await page.close()
   })
 
-  test('copy stays disabled until there is a comment', async () => {
+  test('copy waits for something to hand off, and a comment is optional', async () => {
     const { page, ui } = await open('/')
     await pick(page, ui, 'button.btn', 0.25)
     assert.equal(await ui('button[aria-label="Copy"]').isDisabled(), true)
     await page.keyboard.type('x')
     assert.equal(await ui('button[aria-label="Copy"]').isDisabled(), false)
+    await page.keyboard.press('Backspace')
+    assert.equal(await ui('button[aria-label="Copy"]').isDisabled(), true)
+    await addRow(page, ui, 'width', '350px')
+    assert.equal(await ui('button[aria-label="Copy"]').isDisabled(), false, 'a CSS change is enough without a comment')
     await page.close()
   })
 })
@@ -318,6 +322,47 @@ describe('selection', () => {
 })
 
 describe('capture', () => {
+  test('dragging draws a box, and Before is exactly that box', async () => {
+    const { page, ui } = await open('/')
+    const card = await page.locator('div.card').first().boundingBox()
+    const from = { x: card.x + 20, y: card.y + 10 }
+    const to = { x: card.x + 220, y: card.y + 90 }
+    await page.mouse.move(from.x, from.y)
+    await page.mouse.down()
+    await page.mouse.move(from.x + 40, from.y + 20, { steps: 4 })
+    await page.mouse.move(to.x, to.y, { steps: 4 })
+    await page.mouse.up()
+    await ui('img[alt=Before]').waitFor({ timeout: 20_000 })
+    const [w, h] = await ui('img[alt=Before]').evaluate((i) => [i.naturalWidth, i.naturalHeight])
+    const dpr = await page.evaluate(() => devicePixelRatio)
+    assert.ok(Math.abs(w - 200 * dpr) <= dpr && Math.abs(h - 80 * dpr) <= dpr, `Before is ${w}×${h} for a 200×80 box`)
+    assert.equal(await ui('button[aria-label="Add CSS property"]').count(), 0, 'no CSS rows for a box')
+    await page.close()
+  })
+
+  test('a tiny drag is a click, and a drag released over the toolbar still ends', async () => {
+    const { page, ui } = await open('/')
+    const btn = await page.locator('button.btn').first().boundingBox()
+    await page.mouse.move(btn.x + 20, btn.y + 10)
+    await page.mouse.down()
+    await page.mouse.move(btn.x + 40, btn.y + 12, { steps: 3 })
+    await page.mouse.up()
+    await ui('img[alt=Before]').waitFor({ timeout: 20_000 })
+    assert.equal(await ui('button[aria-label="Add CSS property"]').count(), 1, 'a 20×2 drag picks the element')
+
+    await ui('button[aria-label="Select an element"]').click()
+    const card = await page.locator('div.card').first().boundingBox()
+    const bar = await ui('.cursor-grab').boundingBox()
+    await page.mouse.move(card.x + 20, card.y + 10)
+    await page.mouse.down()
+    await page.mouse.move(card.x + 120, card.y + 80, { steps: 3 })
+    await page.mouse.move(bar.x + bar.width / 2, bar.y + bar.height / 2, { steps: 3 })
+    await page.mouse.up()
+    await ui('img[alt=Before]').waitFor({ timeout: 20_000 })
+    assert.equal(await ui('button[aria-label="Add CSS property"]').count(), 0, 'the box was picked')
+    await page.close()
+  })
+
   test('Before is exactly the selected element, with nothing around it', async () => {
     const { page, ui } = await open('/')
     await pick(page, ui, 'button.btn', 0.25)

@@ -5,7 +5,7 @@ pinspec turns a UI change on a rendered web page into one image a coding agent c
 ## The pin
 
 **Pin**:
-One UI change on one element: the element, a comment, an optional After and optional CSS rows. It exists until it is copied or discarded.
+One UI change on one element or area: the element, an optional comment, an optional After and optional CSS rows, with at least one of the three to hand off. It exists until it is copied or discarded.
 _Avoid_: annotation, note, ticket
 
 **Draft**:
@@ -16,8 +16,12 @@ _Avoid_: unsaved pin, pending pin
 The single DOM element a pin is about, chosen while selecting.
 _Avoid_: node, target, component
 
+**Area**:
+A box dragged while selecting, for a part of the page that isn't an element of its own, such as a frame drawn on a canvas. Its Before is exactly the box; it has no CSS rows.
+_Avoid_: region, crop, marquee
+
 **Comment**:
-The designer's description of the change, typed or dictated. Required on every pin.
+The designer's description of the change, typed or dictated. Optional: a pin with an After or a CSS change can be copied without one, and an empty comment is left out of the handoff image.
 _Avoid_: note, message, description
 
 **Before**:
@@ -87,5 +91,5 @@ The panel attached to the selected element where the pin is written.
 _Avoid_: annotation card, popover, modal
 
 **Selecting**:
-The mode where hovering highlights elements and a click picks one.
+The mode where hovering highlights elements and a click picks one, or a drag draws an area.
 _Avoid_: inspect mode, picking
