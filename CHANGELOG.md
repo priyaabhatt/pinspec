@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Before and After sit in one white frame, split by a line and tagged like design frames, instead of grey panels. Both are drawn at the same scale, so their sizes compare honestly.
 - Drag a box while selecting to pin any part of the page, such as a frame on a canvas-drawn board like Figma's. Before is exactly the box.
 - Hover the Before or After and click ✕ to clear it. An empty slot takes a pasted image (⌘V fills Before first, then After) or **Select on page**, which sets the card aside while you click or drag on the page.
 - The comment is optional: Copy works once there's a comment, an After image or a CSS change, and an empty comment is left out of the image.
