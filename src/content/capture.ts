@@ -49,12 +49,16 @@ export function cropToElement(shot: HTMLImageElement, rect: DOMRect): HTMLCanvas
   const y0 = Math.max(0, rect.top)
   const x1 = Math.min(window.innerWidth, rect.right)
   const y1 = Math.min(window.innerHeight, rect.bottom)
-  const w = Math.max(1, Math.round((x1 - x0) * scale))
-  const h = Math.max(1, Math.round((y1 - y0) * scale))
+  // Scrolled out of view before the screenshot was taken.
+  if (x1 - x0 < 1 || y1 - y0 < 1) throw new Error('it scrolled out of view, try again')
+  const sx = Math.round(x0 * scale)
+  const sy = Math.round(y0 * scale)
+  const w = Math.max(1, Math.min(Math.round((x1 - x0) * scale), shot.naturalWidth - sx))
+  const h = Math.max(1, Math.min(Math.round((y1 - y0) * scale), shot.naturalHeight - sy))
   const canvas = document.createElement('canvas')
   canvas.width = w
   canvas.height = h
-  canvas.getContext('2d')!.drawImage(shot, Math.round(x0 * scale), Math.round(y0 * scale), w, h, 0, 0, w, h)
+  canvas.getContext('2d')!.drawImage(shot, sx, sy, w, h, 0, 0, w, h)
   return canvas
 }
 

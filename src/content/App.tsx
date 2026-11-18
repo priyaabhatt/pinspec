@@ -53,8 +53,9 @@ export function App({ onClose }: { onClose: () => void }) {
     pin.toggleSelecting()
   }
 
-  const setAfterFile = async (file: File) => {
-    const outcome = await pin.pasteAfter(async () => {
+  /** A pasted image fills the first empty slot: Before if it was cleared, else After. */
+  const pasteImage = async (file: File) => {
+    const outcome = await pin.pasteImage(async () => {
       const url = URL.createObjectURL(file)
       try {
         return { url, img: await loadImage(url) }
@@ -63,6 +64,11 @@ export function App({ onClose }: { onClose: () => void }) {
         throw err
       }
     })
+    if (!outcome.ok && outcome.error) flash(outcome.error, 'error')
+  }
+
+  const grab = async (target: Element, box: Area | null) => {
+    const outcome = await pin.grab(target, box)
     if (!outcome.ok && outcome.error) flash(outcome.error, 'error')
   }
 
@@ -77,22 +83,31 @@ export function App({ onClose }: { onClose: () => void }) {
   return (
     <TooltipProvider delayDuration={400}>
       {stage === 'selecting' && <Selector onPick={pick} onCancel={() => pin.cancelSelecting()} />}
+      {stage === 'grabbing' && <Selector onPick={grab} onCancel={() => pin.cancelGrab()} />}
       {stage === 'card' && el && rect && designSystem && (
         <>
-          <div
-            className="pointer-events-none fixed z-20 rounded-[2px] outline-2 outline-highlight"
-            style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
-          />
+          {/* A picked element is outlined; a dragged box isn't, so the page stays as it was. */}
+          {!area && (
+            <div
+              className="pointer-events-none fixed z-20 rounded-[2px] outline-2 outline-highlight"
+              style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
+            />
+          )}
           <Card
             el={el}
             isArea={!!area}
             beforeUrl={beforeUrl}
+            onClearBefore={() => pin.clearBefore()}
+            onGrab={(slot) => {
+              setPickerOpen(false)
+              pin.startGrab(slot)
+            }}
             rect={rect}
             ds={designSystem}
             comment={comment}
             onComment={(c) => pin.setComment(c)}
             after={after}
-            onAfterFile={setAfterFile}
+            onImageFile={pasteImage}
             onClearAfter={() => pin.setAfter(null)}
             rows={rows}
             resolved={resolved}
@@ -109,7 +124,7 @@ export function App({ onClose }: { onClose: () => void }) {
         </>
       )}
       <Toolbar
-        selecting={stage === 'selecting'}
+        selecting={stage === 'selecting' || stage === 'grabbing'}
         toast={toast}
         onSelect={toggleSelecting}
         onClose={() => {

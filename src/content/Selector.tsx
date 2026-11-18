@@ -138,7 +138,8 @@ export function Selector({ onPick, onCancel }: Props) {
         }}
         onMouseDown={(e) => {
           e.preventDefault()
-          if (e.button === 0) press.current = { x: e.clientX, y: e.clientY }
+          // The second press of a double-click on whatever opened selecting isn't a pick.
+          if (e.button === 0 && e.detail <= 1) press.current = { x: e.clientX, y: e.clientY }
         }}
         onWheel={() => !press.current && point.current && requestAnimationFrame(() => hitTest(point.current!.x, point.current!.y))}
       />
@@ -188,7 +189,7 @@ function BoxOutline({ rect }: { rect: DOMRect }) {
       />
       <div
         className="pointer-events-none fixed z-20 rounded bg-highlight px-1.5 py-0.5 font-mono text-[11px] leading-4 text-white shadow"
-        style={{ left: rect.left, top: rect.top > 24 ? rect.top - 22 : rect.bottom + 4 }}
+        style={{ left: rect.left, top: rect.top > 24 ? rect.top - 22 : Math.min(rect.bottom + 4, window.innerHeight - 22) }}
       >
         {Math.round(rect.width)} × {Math.round(rect.height)}
       </div>

@@ -7,7 +7,10 @@
 import { resolveRow, type CssRow, type ResolvedRow } from './cssRow'
 import type { DesignSystem } from './designSystem'
 
-export type Stage = 'idle' | 'selecting' | 'capturing' | 'card'
+/** `grabbing`: the card is set aside while you select on the page to fill its Before or After. */
+export type Stage = 'idle' | 'selecting' | 'capturing' | 'card' | 'grabbing'
+
+export type Slot = 'before' | 'after'
 
 /** Anything the handoff image can draw: a screenshot canvas or a pasted image. */
 export type Picture = CanvasImageSource & { width: number; height: number }
@@ -32,9 +35,6 @@ export interface AfterImage {
 export interface HandoffInput {
   before: HTMLCanvasElement
   after: Picture | null
-  /** Where the After came from: pasted, the live preview, or nothing. */
-  afterSource: 'pasted' | 'live preview' | 'none'
-  element: Element
   /** Each CSS row as a sentence. */
   changes: string[]
   comment: string
@@ -58,6 +58,10 @@ export interface PinEnvironment {
   writeImage(png: Promise<Blob>): Promise<void>
   /** Free a pasted After image. */
   release(after: AfterImage): void
+  /** A screenshot as an After image the card can show. */
+  asAfter(shot: HTMLCanvasElement): Promise<AfterImage>
+  /** A pasted image as a Before; the pasted image is freed. */
+  asBefore(image: AfterImage): HTMLCanvasElement
 }
 
 export interface PinState {
@@ -73,6 +77,8 @@ export interface PinState {
   resolved: Map<number, ResolvedRow>
   designSystem: DesignSystem | null
   busy: boolean
+  /** The slot being filled while grabbing. */
+  grabbing: Slot | null
   /** An element and a Before, something to hand off (a comment, an After or a change), and not already copying. */
   canCopy: boolean
 }
@@ -91,6 +97,7 @@ const EMPTY: PinState = {
   resolved: new Map(),
   designSystem: null,
   busy: false,
+  grabbing: null,
   canCopy: false,
 }
 
@@ -103,6 +110,8 @@ export class Pin {
    * image load can tell it was overtaken.
    */
   private generation = 0
+  /** Bumped by every Copy, so only the latest one clears busy. */
+  private copyId = 0
 
   constructor(
     private env: PinEnvironment,
@@ -118,16 +127,17 @@ export class Pin {
     return () => this.listeners.delete(fn)
   }
 
-  /** The pointer button: start selecting, or cancel selecting (keeping the draft). */
+  /** The pointer button: start selecting, or cancel selecting (keeping the draft), or stop selecting for a slot. */
   toggleSelecting() {
     if (this.state.stage === 'selecting') this.cancelSelecting()
+    else if (this.state.stage === 'grabbing') this.cancelGrab()
     else this.removeElement()
   }
 
   /** Remove: let go of the element and go back to selecting. The draft is kept. */
   removeElement() {
     this.generation++
-    this.set({ stage: 'selecting', element: null, area: null, before: null })
+    this.set({ stage: 'selecting', element: null, area: null, before: null, grabbing: null })
   }
 
   /** Esc or the pointer button while selecting. The draft waits for the next pick. */
@@ -154,27 +164,82 @@ export class Pin {
     }
   }
 
+  /** Empty the Before; Copy waits until it's filled again. */
+  clearBefore() {
+    this.set({ before: null })
+  }
+
+  /** Fill the Before, e.g. from a pasted image. */
+  setBefore(before: HTMLCanvasElement) {
+    this.set({ before })
+  }
+
+  /** Set the card aside to select on the page for a slot. */
+  startGrab(slot: Slot) {
+    if (this.state.stage !== 'card') return
+    this.generation++
+    this.set({ stage: 'grabbing', grabbing: slot })
+  }
+
+  /** Esc while grabbing: back to the card, unchanged. */
+  cancelGrab() {
+    if (this.state.stage !== 'grabbing') return
+    this.generation++
+    this.set({ stage: 'card', grabbing: null })
+  }
+
+  /** Screenshot what was selected into the slot being grabbed for, then back to the card. */
+  async grab(el: Element, area: Area | null = null): Promise<Outcome> {
+    const slot = this.state.grabbing
+    if (this.state.stage !== 'grabbing' || !slot) return { ok: false, error: null }
+    const generation = ++this.generation
+    try {
+      const shot = await this.env.capture(el, area)
+      if (generation !== this.generation) return { ok: false, error: null }
+      if (slot === 'before') {
+        // A new Before is a new subject: the CSS rows and the live preview follow it.
+        const rows = this.state.rows.map((r) => ({ ...r, before: this.env.readValue(el, r.prop) }))
+        this.set({ stage: 'card', grabbing: null, element: el, area, before: shot, rows, designSystem: this.env.designSystem() })
+        return { ok: true }
+      }
+      const after = await this.env.asAfter(shot)
+      if (generation !== this.generation) {
+        this.env.release(after)
+        return { ok: false, error: null }
+      }
+      this.setAfter(after)
+      this.set({ stage: 'card', grabbing: null })
+      return { ok: true }
+    } catch (err) {
+      if (generation !== this.generation) return { ok: false, error: null }
+      this.set({ stage: 'card', grabbing: null })
+      return { ok: false, error: `Couldn't capture: ${(err as Error).message}` }
+    }
+  }
+
   setComment(comment: string) {
     this.set({ comment })
   }
 
   /**
-   * Paste an After image that takes a moment to load. If the pin moves on
-   * meanwhile (Remove, Discard, a new pick), the image is freed, not attached.
+   * Paste an image that takes a moment to load into the first empty slot. If
+   * the pin moves on meanwhile (Remove, Discard, a new pick), it's freed, not attached.
    */
-  async pasteAfter(load: () => Promise<AfterImage>): Promise<Outcome> {
+  async pasteImage(load: () => Promise<AfterImage>): Promise<Outcome> {
     const generation = this.generation
-    let after: AfterImage
+    let image: AfterImage
     try {
-      after = await load()
+      image = await load()
     } catch {
       return { ok: false, error: "That image couldn't be read" }
     }
     if (generation !== this.generation || this.state.stage !== 'card') {
-      this.env.release(after)
+      this.env.release(image)
       return { ok: false, error: null }
     }
-    this.setAfter(after)
+    // The first empty slot once it has loaded: Before if it was cleared, else After.
+    if (!this.state.before) this.set({ before: this.env.asBefore(image) })
+    else this.setAfter(image)
     return { ok: true }
   }
 
@@ -209,6 +274,8 @@ export class Pin {
     const s = this.state
     const el = s.element!
     const changes = s.rows.flatMap((r) => s.resolved.get(r.id)?.handoff ?? [])
+    const generation = this.generation
+    const id = ++this.copyId
     this.set({ busy: true })
     const png = (async () => {
       // No pasted After: the live preview, captured, becomes the After.
@@ -216,18 +283,19 @@ export class Pin {
       return this.env.render({
         before: s.before!,
         after,
-        afterSource: s.after ? 'pasted' : changes.length ? 'live preview' : 'none',
-        element: el,
         changes,
         comment: s.comment,
       })
     })()
     try {
       await this.env.writeImage(png)
-      this.discard()
+      // Overtaken while copying (Esc, Remove, a new pin): the copy still landed; leave the newer pin be.
+      if (generation === this.generation) this.discard()
+      else if (id === this.copyId) this.set({ busy: false })
       return { ok: true }
     } catch (err) {
-      this.set({ busy: false })
+      if (id === this.copyId) this.set({ busy: false })
+      if (generation !== this.generation) return { ok: false, error: null }
       return { ok: false, error: `Couldn't copy: ${(err as Error)?.message ?? err}` }
     }
   }
@@ -252,10 +320,11 @@ export class Pin {
     this.emit()
   }
 
-  /** The live preview shows while the card is open or the element is being captured. */
+  /** The live preview shows while the card is open, the element is being captured, or an After is being grabbed. */
   private syncPreview() {
     const s = this.state
-    const showing = s.stage === 'card' || s.stage === 'capturing'
+    // While grabbing a Before the page shows as it is, so the Before isn't the change.
+    const showing = s.stage === 'card' || s.stage === 'capturing' || (s.stage === 'grabbing' && s.grabbing === 'after')
     const values = new Map<string, string>()
     if (showing && s.element) {
       for (const r of s.rows) {

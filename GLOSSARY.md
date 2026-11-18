@@ -25,11 +25,11 @@ The designer's description of the change, typed or dictated. Optional: a pin wit
 _Avoid_: note, message, description
 
 **Before**:
-A screenshot of exactly the element as it is on the page: its own box, nothing around it. It is tagged Before only when there is an After; otherwise the handoff image shows the element alone.
+What the element or area looks like now: a screenshot of exactly its box, taken when it's picked. It can be cleared with ✕ and refilled by pasting or by grabbing; a grabbed Before becomes the pin's element. It is tagged Before only when there is an After; otherwise the handoff image shows it alone.
 _Avoid_: original, current screenshot
 
 **After**:
-What the element should look like: either a pasted image, or the live preview captured as an image.
+What the element should look like: a pasted image, a screenshot grabbed from the page, or the live preview captured as an image. It can be cleared with ✕.
 _Avoid_: target image, mockup
 
 **Live preview**:
@@ -93,3 +93,7 @@ _Avoid_: annotation card, popover, modal
 **Selecting**:
 The mode where hovering highlights elements and a click picks one, or a drag draws an area.
 _Avoid_: inspect mode, picking
+
+**Grabbing**:
+Selecting on the page to fill the card's Before or After (its "Select on page" button). The card is set aside meanwhile; Esc goes back to it unchanged.
+_Avoid_: re-capture, re-select
