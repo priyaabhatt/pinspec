@@ -79,10 +79,13 @@ export function App({ onClose }: { onClose: () => void }) {
       {stage === 'selecting' && <Selector onPick={pick} onCancel={() => pin.cancelSelecting()} />}
       {stage === 'card' && el && rect && designSystem && (
         <>
-          <div
-            className="pointer-events-none fixed z-20 rounded-[2px] outline-2 outline-highlight"
-            style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
-          />
+          {/* A picked element is outlined; a dragged box isn't, so the page stays as it was. */}
+          {!area && (
+            <div
+              className="pointer-events-none fixed z-20 rounded-[2px] outline-2 outline-highlight"
+              style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
+            />
+          )}
           <Card
             el={el}
             isArea={!!area}
