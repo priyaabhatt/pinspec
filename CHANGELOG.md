@@ -15,6 +15,7 @@
 - With no After and no CSS change, the copied image shows just the element, untagged.
 - The copied image no longer has captions under the pictures, an empty Comment section, or the agent footer.
 - Before and After are cropped to exactly the selected element, with nothing around it.
+- Copied images stay sharp: the image grows wider when the pictures need it, instead of shrinking a wide After to half size.
 - The card and picker are always light, matching the copied image. The toolbar is dark, and both float on a clear shadow.
 - In the card, the arrow sits centred between the before value and the after box, and the card's ✕ button is gone. Esc still discards the pin.
 
