@@ -55,7 +55,8 @@ export function Toolbar({ selecting, toast, onSelect, onClose }: Props) {
           size="icon"
           aria-label="Select an element"
           aria-pressed={selecting}
-          onClick={onSelect}
+          // The second click of a double-click would undo the first.
+          onClick={(e) => e.detail <= 1 && onSelect()}
           className={cn(TOOLBAR_BUTTON, selecting && 'bg-highlight text-white hover:bg-highlight hover:text-white')}
         >
           <MousePointer2 />
