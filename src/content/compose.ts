@@ -12,8 +12,13 @@ export interface ComposeInput {
   comment: string
 }
 
-const W = 1200
+/** The image is this wide unless the pictures need more room to stay at full size. */
+const MIN_W = 1200
+/** Past this, pictures are shrunk to fit rather than the image growing further. */
+const MAX_W = 2400
 const PAD = 40
+/** Text wraps at the narrow width, so lines stay readable in a wide image. */
+const TEXT_W = MIN_W - PAD * 2
 const SCALE = 2
 // Tall enough that stitched captures of long elements stay readable.
 const MAX_PICTURE_H = 1160
@@ -60,6 +65,36 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, width: number): strin
   return out
 }
 
+/** Wide enough for the pictures at full CSS size, within MIN_W and MAX_W. */
+function widthFor(pictures: Picture[]) {
+  const dpr = window.devicePixelRatio || 1
+  const needed = pictures.reduce((sum, p) => sum + p.width / dpr + CELL_PAD * 2, 0) + PAD * 2
+  return Math.round(Math.min(MAX_W, Math.max(MIN_W, needed)))
+}
+
+/**
+ * Draw a picture shrunk to w × h. A single big downscale on a canvas blurs
+ * fine text, so large shrinks happen in halving steps first.
+ */
+function drawSharp(ctx: CanvasRenderingContext2D, img: Picture, x: number, y: number, w: number, h: number) {
+  let src: CanvasImageSource = img
+  let sw = img.width
+  let sh = img.height
+  const target = w * SCALE
+  while (sw / 2 >= target) {
+    const half = document.createElement('canvas')
+    half.width = Math.round(sw / 2)
+    half.height = Math.round(sh / 2)
+    const hctx = half.getContext('2d')!
+    hctx.imageSmoothingQuality = 'high'
+    hctx.drawImage(src, 0, 0, half.width, half.height)
+    src = half
+    sw = half.width
+    sh = half.height
+  }
+  ctx.drawImage(src, x, y, w, h)
+}
+
 /**
  * Lay the pictures out side by side in one frame, all at the same scale so
  * Before and After compare honestly: as large as the frame allows, never past
@@ -84,15 +119,16 @@ export function compose(input: ComposeInput): HTMLCanvasElement {
   // With no After the element is the only picture, untagged.
   const pictures = input.after ? [input.before, input.after] : [input.before]
   const tags = input.after ? ['before', 'after'] : []
+  const W = widthFor(pictures)
   const frameW = W - PAD * 2
   const { sizes, cols, pictureH } = layout(pictures, frameW)
   const top = tags.length ? TAG_ROOM : CELL_PAD
   const frameH = Math.max(MIN_FRAME_H, top + pictureH + CELL_PAD)
 
   scratch.font = `400 26px ${SANS}`
-  const commentLines = wrap(scratch, input.comment, W - PAD * 2)
+  const commentLines = wrap(scratch, input.comment, TEXT_W)
   scratch.font = `400 22px ${SANS}`
-  const changeLines = input.changes.map((c) => wrap(scratch, c, W - PAD * 2 - BULLET))
+  const changeLines = input.changes.map((c) => wrap(scratch, c, TEXT_W - BULLET))
 
   let h = PAD
   h += frameH
@@ -150,7 +186,7 @@ export function compose(input: ComposeInput): HTMLCanvasElement {
     }
     const z = sizes[i]
     // Centred in the room below the tags.
-    ctx.drawImage(img, x + (cols[i] - z.w) / 2, y + top + (frameH - top - CELL_PAD - z.h) / 2, z.w, z.h)
+    drawSharp(ctx, img, x + (cols[i] - z.w) / 2, y + top + (frameH - top - CELL_PAD - z.h) / 2, z.w, z.h)
     if (tags[i]) tag(tags[i], x + 10, y + 10)
     x += cols[i]
   })
