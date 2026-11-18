@@ -7,7 +7,10 @@
 import { resolveRow, type CssRow, type ResolvedRow } from './cssRow'
 import type { DesignSystem } from './designSystem'
 
-export type Stage = 'idle' | 'selecting' | 'capturing' | 'card'
+/** `grabbing`: the card is set aside while you select on the page to fill its Before or After. */
+export type Stage = 'idle' | 'selecting' | 'capturing' | 'card' | 'grabbing'
+
+export type Slot = 'before' | 'after'
 
 /** Anything the handoff image can draw: a screenshot canvas or a pasted image. */
 export type Picture = CanvasImageSource & { width: number; height: number }
@@ -58,6 +61,8 @@ export interface PinEnvironment {
   writeImage(png: Promise<Blob>): Promise<void>
   /** Free a pasted After image. */
   release(after: AfterImage): void
+  /** A screenshot as an After image the card can show. */
+  asAfter(shot: HTMLCanvasElement): AfterImage
 }
 
 export interface PinState {
@@ -73,6 +78,8 @@ export interface PinState {
   resolved: Map<number, ResolvedRow>
   designSystem: DesignSystem | null
   busy: boolean
+  /** The slot being filled while grabbing. */
+  grabbing: Slot | null
   /** An element and a Before, something to hand off (a comment, an After or a change), and not already copying. */
   canCopy: boolean
 }
@@ -91,6 +98,7 @@ const EMPTY: PinState = {
   resolved: new Map(),
   designSystem: null,
   busy: false,
+  grabbing: null,
   canCopy: false,
 }
 
@@ -150,6 +158,51 @@ export class Pin {
     } catch (err) {
       if (generation !== this.generation) return { ok: false, error: null }
       this.set({ stage: 'selecting' })
+      return { ok: false, error: `Couldn't capture: ${(err as Error).message}` }
+    }
+  }
+
+  /** Empty the Before; Copy waits until it's filled again. */
+  clearBefore() {
+    this.set({ before: null })
+  }
+
+  /** Fill the Before, e.g. from a pasted image. */
+  setBefore(before: HTMLCanvasElement) {
+    this.set({ before })
+  }
+
+  /** Set the card aside to select on the page for a slot. */
+  startGrab(slot: Slot) {
+    if (this.state.stage !== 'card') return
+    this.generation++
+    this.set({ stage: 'grabbing', grabbing: slot })
+  }
+
+  /** Esc while grabbing: back to the card, unchanged. */
+  cancelGrab() {
+    if (this.state.stage !== 'grabbing') return
+    this.generation++
+    this.set({ stage: 'card', grabbing: null })
+  }
+
+  /** Screenshot what was selected into the slot being grabbed for, then back to the card. */
+  async grab(el: Element, area: Area | null = null): Promise<Outcome> {
+    const slot = this.state.grabbing
+    if (this.state.stage !== 'grabbing' || !slot) return { ok: false, error: null }
+    const generation = ++this.generation
+    try {
+      const shot = await this.env.capture(el, area)
+      if (generation !== this.generation) return { ok: false, error: null }
+      if (slot === 'before') this.set({ stage: 'card', grabbing: null, before: shot })
+      else {
+        this.setAfter(this.env.asAfter(shot))
+        this.set({ stage: 'card', grabbing: null })
+      }
+      return { ok: true }
+    } catch (err) {
+      if (generation !== this.generation) return { ok: false, error: null }
+      this.set({ stage: 'card', grabbing: null })
       return { ok: false, error: `Couldn't capture: ${(err as Error).message}` }
     }
   }
@@ -255,7 +308,7 @@ export class Pin {
   /** The live preview shows while the card is open or the element is being captured. */
   private syncPreview() {
     const s = this.state
-    const showing = s.stage === 'card' || s.stage === 'capturing'
+    const showing = s.stage === 'card' || s.stage === 'capturing' || s.stage === 'grabbing'
     const values = new Map<string, string>()
     if (showing && s.element) {
       for (const r of s.rows) {

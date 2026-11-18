@@ -53,8 +53,9 @@ export function App({ onClose }: { onClose: () => void }) {
     pin.toggleSelecting()
   }
 
-  const setAfterFile = async (file: File) => {
-    const outcome = await pin.pasteAfter(async () => {
+  /** A pasted image fills Before if it was removed, else After. */
+  const pasteImage = async (file: File) => {
+    const load = async () => {
       const url = URL.createObjectURL(file)
       try {
         return { url, img: await loadImage(url) }
@@ -62,7 +63,23 @@ export function App({ onClose }: { onClose: () => void }) {
         URL.revokeObjectURL(url)
         throw err
       }
-    })
+    }
+    if (!pin.get().before) {
+      try {
+        const { url, img } = await load()
+        pin.setBefore(toCanvas(img))
+        URL.revokeObjectURL(url)
+      } catch {
+        flash("That image couldn't be read", 'error')
+      }
+      return
+    }
+    const outcome = await pin.pasteAfter(load)
+    if (!outcome.ok && outcome.error) flash(outcome.error, 'error')
+  }
+
+  const grab = async (target: Element, box: Area | null) => {
+    const outcome = await pin.grab(target, box)
     if (!outcome.ok && outcome.error) flash(outcome.error, 'error')
   }
 
@@ -77,6 +94,7 @@ export function App({ onClose }: { onClose: () => void }) {
   return (
     <TooltipProvider delayDuration={400}>
       {stage === 'selecting' && <Selector onPick={pick} onCancel={() => pin.cancelSelecting()} />}
+      {stage === 'grabbing' && <Selector onPick={grab} onCancel={() => pin.cancelGrab()} />}
       {stage === 'card' && el && rect && designSystem && (
         <>
           {/* A picked element is outlined; a dragged box isn't, so the page stays as it was. */}
@@ -90,12 +108,17 @@ export function App({ onClose }: { onClose: () => void }) {
             el={el}
             isArea={!!area}
             beforeUrl={beforeUrl}
+            onClearBefore={() => pin.clearBefore()}
+            onGrab={(slot) => {
+              setPickerOpen(false)
+              pin.startGrab(slot)
+            }}
             rect={rect}
             ds={designSystem}
             comment={comment}
             onComment={(c) => pin.setComment(c)}
             after={after}
-            onAfterFile={setAfterFile}
+            onImageFile={pasteImage}
             onClearAfter={() => pin.setAfter(null)}
             rows={rows}
             resolved={resolved}
@@ -122,4 +145,13 @@ export function App({ onClose }: { onClose: () => void }) {
       />
     </TooltipProvider>
   )
+}
+
+/** A loaded image as a canvas, the form a Before takes. */
+function toCanvas(img: HTMLImageElement) {
+  const canvas = document.createElement('canvas')
+  canvas.width = img.naturalWidth
+  canvas.height = img.naturalHeight
+  canvas.getContext('2d')!.drawImage(img, 0, 0)
+  return canvas
 }

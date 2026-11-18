@@ -1,26 +1,30 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Copy, ImagePlus, X } from 'lucide-react'
+import { Copy, Crosshair, ImagePlus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
 import type { CssRow, ResolvedRow } from '@/lib/cssRow'
 import type { DesignSystem } from '@/lib/designSystem'
 import { cn } from '@/lib/utils'
 import { CssPicker } from './CssPicker'
-import type { AfterImage } from '@/lib/pin'
+import type { AfterImage, Slot } from '@/lib/pin'
 import { onPinspecPaste } from './pasteRouter'
 
 interface Props {
   el: Element
   /** The pin is a dragged area: no CSS rows, since there's no element of its own to style. */
   isArea: boolean
-  /** Screenshot of the selected element, taken when it was picked. */
+  /** Screenshot of the selected element, taken when it was picked; empty once removed. */
   beforeUrl: string
+  onClearBefore: () => void
+  /** Select on the page to fill a slot. */
+  onGrab: (slot: Slot) => void
   rect: DOMRect
   ds: DesignSystem
   comment: string
   onComment: (v: string) => void
   after: AfterImage | null
-  onAfterFile: (file: File) => void
+  /** A pasted image: it fills Before if that's empty, else After. */
+  onImageFile: (file: File) => void
   onClearAfter: () => void
   rows: CssRow[]
   resolved: Map<number, ResolvedRow>
@@ -71,10 +75,17 @@ export function Card(p: Props) {
 
   const pos = place(p.rect, height)
 
+  /** Run an action whose button disappears, keeping focus in the card so the next ⌘V still lands here. */
+  const keepFocus = (action: () => void) => {
+    action()
+    ref.current?.focus({ preventScroll: true })
+  }
+
   // ⌘V anywhere in pinspec while the card is open (the card, the { } picker,
-  // the toolbar): images go to the after slot, even while the comment has
-  // focus; text goes where the cursor is, or into the comment. The paste
-  // router delivers it here before the page's own paste handlers.
+  // the toolbar): images fill the first empty slot (Before, then After), even
+  // while the comment has focus; text goes where the cursor is, or into the
+  // comment. The paste router delivers it here before the page's own paste
+  // handlers.
   const latest = useRef(p)
   latest.current = p
   useEffect(
@@ -87,7 +98,7 @@ export function Card(p: Props) {
         const file = image?.getAsFile()
         if (file) {
           e.preventDefault()
-          p.onAfterFile(file)
+          p.onImageFile(file)
           return
         }
         const text = data.getData('text/plain')
@@ -130,8 +141,16 @@ export function Card(p: Props) {
     >
       <div className="flex flex-col gap-2 p-3">
         <div className="flex gap-3">
-          <BeforeSlot url={p.beforeUrl} tagged={!!p.after} />
-          <AfterSlot after={p.after} onClear={p.onClearAfter} />
+          {p.beforeUrl ? (
+            <FilledSlot url={p.beforeUrl} label="Before" tagged={!!p.after} onClear={() => keepFocus(p.onClearBefore)} />
+          ) : (
+            <EmptySlot label="Before" onGrab={() => p.onGrab('before')} />
+          )}
+          {p.after ? (
+            <FilledSlot url={p.after.url} label="After" tagged onClear={() => keepFocus(p.onClearAfter)} />
+          ) : (
+            <EmptySlot label="After" onGrab={() => p.onGrab('after')} />
+          )}
         </div>
         <div className="flex min-w-0 flex-col gap-2">
           <textarea
@@ -210,38 +229,38 @@ function SlotLabel({ children }: { children: string }) {
   )
 }
 
-/** Tagged "Before" only once there's an After to compare it with. */
-function BeforeSlot({ url, tagged }: { url: string; tagged: boolean }) {
+/** A filled slot: its image, its tag, and an ✕ on hover that empties it. */
+function FilledSlot({ url, label, tagged, onClear }: { url: string; label: 'Before' | 'After'; tagged: boolean; onClear: () => void }) {
   return (
-    <div className={cn(SLOT, 'bg-muted p-2')}>
-      <img src={url} alt="Before" className="max-h-full max-w-full object-contain" />
-      {tagged && <SlotLabel>Before</SlotLabel>}
+    <div className={cn(SLOT, 'group bg-muted p-2')}>
+      <img src={url} alt={label} className="max-h-full max-w-full object-contain" />
+      {tagged && <SlotLabel>{label}</SlotLabel>}
+      <button
+        type="button"
+        aria-label={`Remove ${label.toLowerCase()} image`}
+        onClick={onClear}
+        className="absolute top-3 right-3 rounded-full bg-background/90 p-1 text-muted-foreground opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:text-foreground focus-visible:opacity-100"
+      >
+        <X className="size-3.5" />
+      </button>
     </div>
   )
 }
 
-function AfterSlot({ after, onClear }: { after: AfterImage | null; onClear: () => void }) {
-  if (after) {
-    return (
-      <div className={cn(SLOT, 'group bg-muted p-2')}>
-        <img src={after.url} alt="After" className="max-h-full max-w-full object-contain" />
-        <SlotLabel>After</SlotLabel>
-        <button
-          type="button"
-          aria-label="Remove after image"
-          onClick={onClear}
-          className="absolute top-1 right-1 rounded-full bg-background/90 p-0.5 opacity-0 shadow group-hover:opacity-100"
-        >
-          <X className="size-3.5" />
-        </button>
-      </div>
-    )
-  }
+/** An empty slot: paste an image into it, or select something on the page. */
+function EmptySlot({ label, onGrab }: { label: 'Before' | 'After'; onGrab: () => void }) {
   return (
     <div className={cn(SLOT, 'flex-col gap-1.5 border-dashed bg-muted/50 text-center text-muted-foreground')}>
       <ImagePlus className="size-5" />
-      <div className="text-xs font-medium">Paste after image</div>
-      <kbd className="rounded border bg-background px-1.5 py-0.5 font-sans text-[11px]">⌘V</kbd>
+      <div className="text-xs font-medium">Paste {label.toLowerCase()} image</div>
+      <div className="flex items-center gap-1.5">
+        <kbd className="rounded border bg-background px-1.5 py-0.5 font-sans text-[11px]">⌘V</kbd>
+        <span className="text-[11px]">or</span>
+        <Button variant="outline" size="sm" className="h-6 px-2 text-[11px]" onClick={onGrab}>
+          <Crosshair className="size-3" />
+          Select on page
+        </Button>
+      </div>
     </div>
   )
 }

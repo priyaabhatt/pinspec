@@ -31,5 +31,6 @@ export function pageEnvironment(): PinEnvironment {
     // across the async capture and compose.
     writeImage: (png) => navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]),
     release: (after) => URL.revokeObjectURL(after.url),
+    asAfter: (shot) => ({ url: shot.toDataURL('image/png'), img: shot }),
   }
 }

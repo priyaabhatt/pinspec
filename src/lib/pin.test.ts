@@ -36,6 +36,7 @@ function fakeEnvironment(opts: { clipboardFails?: boolean } = {}) {
       if (opts.clipboardFails) throw new Error('blocked')
     },
     release: (after) => log.released.push(after.url),
+    asAfter: (img) => ({ url: 'data:shot', img }),
   }
   return { env, log }
 }
@@ -150,6 +151,40 @@ describe('an area', () => {
     pin.removeElement()
     await pin.pick(element(232))
     expect(pin.get().area).toBeNull()
+  })
+})
+
+describe('filling a slot', () => {
+  it('empties Before, and Copy waits until it is filled again', async () => {
+    const { pin } = await pinWithElement()
+    pin.setComment('wider')
+    pin.clearBefore()
+    expect(pin.get()).toMatchObject({ stage: 'card', before: null, canCopy: false })
+    pin.setBefore({ width: 5, height: 5 } as unknown as HTMLCanvasElement)
+    expect(pin.get().canCopy).toBe(true)
+  })
+
+  it('grabs a screenshot from the page into Before or After, then returns to the card', async () => {
+    const { pin, log } = await pinWithElement()
+    pin.startGrab('after')
+    expect(pin.get()).toMatchObject({ stage: 'grabbing', grabbing: 'after' })
+    const box = { left: 0, top: 0, width: 50, height: 40 }
+    expect(await pin.grab(element(900), box)).toEqual({ ok: true })
+    expect(log.areas.at(-1)).toEqual(box)
+    expect(pin.get()).toMatchObject({ stage: 'card', grabbing: null, after: { url: 'data:shot' } })
+    pin.clearBefore()
+    pin.startGrab('before')
+    await pin.grab(element(900))
+    expect(pin.get().before).not.toBeNull()
+    expect(pin.get().element).toMatchObject({ width: 232 })
+  })
+
+  it('goes back to the card unchanged on Esc', async () => {
+    const { pin } = await pinWithElement()
+    const before = pin.get().before
+    pin.startGrab('before')
+    pin.cancelGrab()
+    expect(pin.get()).toMatchObject({ stage: 'card', grabbing: null, before })
   })
 })
 

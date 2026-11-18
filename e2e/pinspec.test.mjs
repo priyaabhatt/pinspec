@@ -296,6 +296,56 @@ describe('styles', () => {
   })
 })
 
+describe('slots', () => {
+  test('✕ empties Before, a paste fills it, and Select on page fills After', async () => {
+    const { page, ui } = await open('/')
+    await pick(page, ui, 'button.btn', 0.25)
+    await page.keyboard.type('x')
+    await ui('img[alt=Before]').hover()
+    await ui('button[aria-label="Remove before image"]').click()
+    assert.equal(await ui('img[alt=Before]').count(), 0)
+    assert.equal(await ui('button[aria-label="Copy"]').isDisabled(), true, 'Copy waits for a Before')
+
+    // A pasted image fills the empty Before first.
+    await page.evaluate(async () => {
+      const c = document.createElement('canvas')
+      c.width = c.height = 8
+      const png = await new Promise((r) => c.toBlob(r, 'image/png'))
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })])
+    })
+    await page.keyboard.press('ControlOrMeta+V')
+    await ui('img[alt=Before]').waitFor({ timeout: 5000 })
+    assert.equal(await ui('img[alt=After]').count(), 0)
+    assert.equal(await ui('button[aria-label="Copy"]').isDisabled(), false)
+
+    // Select on page hides the card; a drag fills After and brings it back.
+    await ui('button:has-text("Select on page")').click()
+    await page.waitForTimeout(200)
+    assert.equal(await ui('textarea').count(), 0, 'the card is set aside while selecting')
+    const row = await page.locator('.activity li').first().boundingBox()
+    await page.mouse.move(row.x + 10, row.y + 5)
+    await page.mouse.down()
+    await page.mouse.move(row.x + 60, row.y + 20, { steps: 3 })
+    await page.mouse.move(row.x + 160, row.y + 40, { steps: 3 })
+    await page.mouse.up()
+    await ui('img[alt=After]').waitFor({ timeout: 20_000 })
+    assert.equal(await ui('textarea').inputValue(), 'x', 'the comment survives')
+    await page.close()
+  })
+
+  test('Esc while selecting for a slot goes back to the card unchanged', async () => {
+    const { page, ui } = await open('/')
+    await pick(page, ui, 'button.btn', 0.25)
+    await ui('button:has-text("Select on page")').click()
+    await page.waitForTimeout(150)
+    await key(page, 'Escape')
+    await ui('textarea').waitFor({ timeout: 5000 })
+    assert.equal(await ui('img[alt=Before]').count(), 1)
+    assert.equal(await ui('img[alt=After]').count(), 0)
+    await page.close()
+  })
+})
+
 describe('selection', () => {
   test('icons select as one svg, overlays are skipped, ↑ and ↓ move through the tree', async () => {
     const { page } = await open('/')
