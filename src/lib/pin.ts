@@ -110,6 +110,8 @@ export class Pin {
    * image load can tell it was overtaken.
    */
   private generation = 0
+  /** Bumped by every Copy, so only the latest one clears busy. */
+  private copyId = 0
 
   constructor(
     private env: PinEnvironment,
@@ -224,8 +226,6 @@ export class Pin {
    * the pin moves on meanwhile (Remove, Discard, a new pick), it's freed, not attached.
    */
   async pasteImage(load: () => Promise<AfterImage>): Promise<Outcome> {
-    // The first empty slot: Before if it was cleared, else After.
-    const slot = this.state.before ? 'after' : 'before'
     const generation = this.generation
     let image: AfterImage
     try {
@@ -237,7 +237,8 @@ export class Pin {
       this.env.release(image)
       return { ok: false, error: null }
     }
-    if (slot === 'before') this.set({ before: this.env.asBefore(image) })
+    // The first empty slot once it has loaded: Before if it was cleared, else After.
+    if (!this.state.before) this.set({ before: this.env.asBefore(image) })
     else this.setAfter(image)
     return { ok: true }
   }
@@ -274,6 +275,7 @@ export class Pin {
     const el = s.element!
     const changes = s.rows.flatMap((r) => s.resolved.get(r.id)?.handoff ?? [])
     const generation = this.generation
+    const id = ++this.copyId
     this.set({ busy: true })
     const png = (async () => {
       // No pasted After: the live preview, captured, becomes the After.
@@ -289,10 +291,11 @@ export class Pin {
       await this.env.writeImage(png)
       // Overtaken while copying (Esc, Remove, a new pin): the copy still landed; leave the newer pin be.
       if (generation === this.generation) this.discard()
-      else this.set({ busy: false })
+      else if (id === this.copyId) this.set({ busy: false })
       return { ok: true }
     } catch (err) {
-      this.set({ busy: false })
+      if (id === this.copyId) this.set({ busy: false })
+      if (generation !== this.generation) return { ok: false, error: null }
       return { ok: false, error: `Couldn't copy: ${(err as Error)?.message ?? err}` }
     }
   }

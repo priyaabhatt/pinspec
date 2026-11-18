@@ -207,6 +207,35 @@ describe('review regressions', () => {
     expect(pin.get()).toMatchObject({ stage: 'card', comment: 'second', busy: false, canCopy: true })
   })
 
+  it('an older copy finishing late leaves a newer copy busy', async () => {
+    const { env } = fakeEnvironment()
+    const releases: (() => void)[] = []
+    env.writeImage = (png) => new Promise((r) => releases.push(() => png.then(() => r())))
+    const pin = new Pin(env, 'selecting')
+    await pin.pick(element(232))
+    pin.setComment('first')
+    const first = pin.copy()
+    pin.discard()
+    pin.toggleSelecting()
+    await pin.pick(element(300))
+    pin.setComment('second')
+    const second = pin.copy()
+    releases[0]()
+    await first
+    expect(pin.get().busy).toBe(true)
+    releases[1]()
+    await second
+    expect(pin.get().stage).toBe('idle')
+  })
+
+  it('two quick pastes into an empty Before fill Before, then After', async () => {
+    const { pin } = await pinWithElement()
+    pin.clearBefore()
+    await Promise.all([pin.pasteImage(async () => after('blob:1')), pin.pasteImage(async () => after('blob:2'))])
+    expect(pin.get().before).not.toBeNull()
+    expect(pin.get().after?.url).toBe('blob:2')
+  })
+
   it('shows the page as it is while grabbing a Before, and the preview while grabbing an After', async () => {
     const { pin, log } = await pinWithElement()
     pin.updateRow(pin.addRow('width'), { after: '400px' })
