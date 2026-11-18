@@ -1,20 +1,30 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 (2026-11-18)
 
-- Copied images stay sharp: the image grows wider (up to 2400px) when the pictures need it, instead of shrinking a wide After to half size, and any shrink happens in steps that keep text crisp.
-- Before and After sit in one white frame, split by a line and tagged like design frames, instead of grey panels. Both are drawn at the same scale, so their sizes compare honestly.
-- Drag a box while selecting to pin any part of the page, such as a frame on a canvas-drawn board like Figma's. Before is exactly the box.
-- Hover the Before or After and click ✕ to clear it. An empty slot takes a pasted image (⌘V fills Before first, then After) or **Select on page**, which sets the card aside while you click or drag on the page.
-- The comment is optional: Copy works once there's a comment, an After image or a CSS change, and an empty comment is left out of the image.
-- The copied image no longer prints captions under Before and After (the element's tag and classes, "Pasted target").
-- Before and After are cropped to exactly the selected element. They used to include 16px around it, which pulled in neighbouring content such as a sidebar's edge.
-- The copied image no longer ends with the agent footer; it's just the element, the changes and your comment.
-- CSS rows read as instructions in the copied image: "Change the width from 232px to w-88 (352px), the nearest step to 350px."
-- Pasting an After is optional in every sense: with no After and no CSS rows, the copied image shows just the element, untagged and full width, and the card drops its Before tag until you paste one.
-- The card and picker are always light, matching the copied image, instead of following the system's dark mode. The toolbar is dark, and both float on a stronger shadow so they stand out on white pages.
-- Shadows, focus rings, dashed borders, border colours and the toolbar message's centring now render: a build step had been silently resetting them inside pinspec's shadow root.
-- In the card, the arrow sits centred between the before value and the after box, and the card's ✕ button is gone. Esc while the card is open still discards the pin.
+### New
+
+- **Drag a box to pin any part of the page.** Click still picks an element; press and drag draws a box, and Before is exactly that box. Works on canvas-drawn boards such as Figma's, where a frame isn't an element of its own.
+- **Clear or replace either image.** Hover the Before or After and click ✕. An empty slot takes a pasted image (⌘V fills Before first, then After) or **Select on page**, which sets the card aside while you click or drag on the page.
+- **The comment is optional.** Copy works once there's a comment, an After or a CSS change.
+- **CSS changes read as instructions** in the copied image: "Change the width from 232px to w-88 (352px), the nearest step to 350px."
+
+### Changed
+
+- The copied image shows Before and After in one white frame with small before/after tags, both at the same scale, instead of grey panels.
+- With no After and no CSS change, the copied image shows just the element, untagged.
+- The copied image no longer has captions under the pictures, an empty Comment section, or the agent footer.
+- Before and After are cropped to exactly the selected element, with nothing around it.
+- Copied images stay sharp: the image grows wider when the pictures need it, instead of shrinking a wide After to half size.
+- The card and picker are always light, matching the copied image. The toolbar is dark, and both float on a clear shadow.
+- In the card, the arrow sits centred between the before value and the after box, and the card's ✕ button is gone. Esc still discards the pin.
+
+### Fixed
+
+- Dictated or pasted text and images reach the card on pages that intercept paste.
+- Shadows, focus rings, dashed borders and border colours render inside pinspec; a build step had been resetting them.
+- A copy that finishes after you've moved on no longer wipes the next pin.
+- Double-clicks, Backspace after ✕, the toolbar during Select on page, and a page scrolling during capture all behave.
 
 ## 0.1.0 (2026-10-19)
 

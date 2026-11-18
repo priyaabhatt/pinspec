@@ -40,10 +40,19 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run zip
+      - name: Take this version's notes from CHANGELOG.md
+        run: |
+          awk -v v="## $VERSION " 'index($0, v) == 1 { on = 1; next } on && /^## / { exit } on' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "CHANGELOG.md has no '## $VERSION' section" >&2
+            exit 1
+          fi
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.VERSION }}
           target_commitish: ${{ github.sha }}
           name: pinspec ${{ env.VERSION }}
           files: pinspec-${{ env.VERSION }}.zip
+          # The changelog in plain words first, then GitHub's list of pull requests.
+          body_path: notes.md
           generate_release_notes: true
