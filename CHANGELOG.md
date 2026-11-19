@@ -11,6 +11,7 @@
 
 ### Changed
 
+- New icon: a note pinned to an orange square.
 - The copied image shows Before and After in one white frame with small before/after tags, both at the same scale, instead of grey panels.
 - With no After and no CSS change, the copied image shows just the element, untagged.
 - The copied image no longer has captions under the pictures, an empty Comment section, or the agent footer.
